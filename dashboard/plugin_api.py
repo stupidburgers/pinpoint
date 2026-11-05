@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -46,6 +46,7 @@ class AckBody(BaseModel):
 
 class ResultBody(BaseModel):
     request_id: str
+    claim_token: Optional[str] = None
     ok: bool = True
     result: Optional[Any] = None
     code: Optional[str] = None
@@ -79,23 +80,37 @@ async def pending():
 @router.post("/ack/{request_id}")
 async def ack(request_id: str, body: Optional[AckBody] = None):
     core, _ = _mods()
-    if core.claim_ack(request_id, body.window if body else ""):
-        return {"claimed": True}
+    token = core.claim(request_id, body.window if body else "")
+    if token:
+        return {"claimed": True, "claim_token": token}
     return JSONResponse({"claimed": False}, status_code=409)
 
 
+_STATUS = {"unknown": 404, "no_ack": 409, "bad_token": 403, "duplicate": 409, "too_large": 413, "bad": 400}
+
+
 @router.post("/result")
-async def result(body: ResultBody):
+async def result(request: Request):
     core, _ = _mods()
+    raw = b""
+    async for chunk in request.stream():  # bounded BEFORE parsing; Content-Length is not trusted
+        raw += chunk
+        if len(raw) > core.MAX_RESULT_BYTES + 4096:
+            return JSONResponse({"ok": False, "message": "result too large"}, status_code=413)
+    try:
+        body = ResultBody.model_validate_json(raw) if hasattr(ResultBody, "model_validate_json") else ResultBody.parse_raw(raw)
+    except Exception:
+        return JSONResponse({"ok": False, "message": "malformed result"}, status_code=400)
     payload = {"request_id": body.request_id, "ok": body.ok}
     if body.ok:
         payload["result"] = body.result if isinstance(body.result, dict) else {}
     else:
         payload["code"] = body.code or "engine_error"
         payload["message"] = body.message or ""
-    if core.post_result(body.request_id, payload):
+    st = core.post_result_status(body.request_id, payload, body.claim_token, strict=True)
+    if st == "ok":
         return {"ok": True}
-    return JSONResponse({"ok": False, "message": "unknown or expired request"}, status_code=404)
+    return JSONResponse({"ok": False, "message": st}, status_code=_STATUS.get(st, 400))
 
 
 @router.post("/audit")
