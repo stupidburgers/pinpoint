@@ -689,7 +689,7 @@ function pinpointEngine(config) {
  X.all.forEach(function(el) {
   if (el.ownerDocument !== doc || el === root) return;
   var cs = gcs(el);
-  if (cs.visibility === 'hidden' || el.getClientRects().length === 0) return;
+  if (cs.visibility === 'hidden' || el.getClientRects().length === 0 || cs.transform !== 'none') return;
   var r = rectOf(el), o = Math.ceil(r.x + r.w - vw);
   if (o < 1 || lay(el).ovc) return;
   for (var p = el.parentElement; p && p !== root; p = p.parentElement) if (!lay(p).ovc && rectOf(p).x + rectOf(p).w > vw + 1 && gcs(p).visibility !== 'hidden') return;

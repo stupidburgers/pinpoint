@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>overflow hard</title></head>
+<body style="margin:0;font:16px Arial">
+<table id="bad-o1" style="width:1400px" border="0" cellpadding="0" cellspacing="0"><tr><td style="height:14px">wide table</td></tr></table>
+<div id="bad-o2" style="width:1000px;height:10px">wide div</div>
+<div id="bad-o3" style="width:max-content;height:10px;padding-right:1300px">wide padded</div>
+<div id="ok-o1" style="transform:translateX(1500px);width:100px;height:10px">translated</div>
+<div id="ok-o2" style="position:fixed;left:-1600px;top:0;width:200px;height:10px">fixed offscreen</div>
+<div style="overflow:auto;width:200px"><div id="ok-o3" style="width:1200px;height:10px">scrolls internally</div></div>
+<div id="ok-o4" style="width:600px;height:10px">fits</div>
+</body></html>

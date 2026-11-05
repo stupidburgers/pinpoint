@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>contrast hard</title>
+<style>body{margin:0;padding:8px;font:16px/1.4 Arial,sans-serif;background:#fff;color:#000}p,summary{margin:4px 0}</style></head><body>
+<p id="bad-c1" style="color:color-mix(in srgb, white 70%, #666)">pale color-mix on white</p>
+<div style="background:#1a1a1a;color:#ddd"><p id="ok-c1" style="color:color-mix(in srgb, white 70%, #666)">mix on dark passes</p></div>
+<div style="background:rgba(0,0,0,.45)"><p id="bad-c2" style="color:rgb(0,0,0);opacity:.5">alpha over alpha</p></div>
+<div style="background:#1a1a1a;background-color:#1a1a1a"><p id="ok-c2" style="color:#eee">opaque dark</p></div>
+<p id="bad-c3" style="color:oklch(0.85 0.05 240)">pale oklch</p>
+<p id="ok-c3" style="color:oklch(0.35 0.1 240)">dark oklch</p>
+<details><summary id="bad-c4" style="color:#b9b9b9">pale summary</summary>body</details>
+<a id="ok-c4" href="#x" style="color:#0645ad">visited style link</a>
+<p id="bad-c8" style="color:#888;font-size:23.9px">just under large</p>
+<p id="ok-c8" style="color:#888;font-size:24px">just at large</p>
+<div style="color-scheme:dark;background:#121212;color:#eee;padding:4px"><p id="ok-c7">dark scheme local</p></div>
+<div style="background:#fff"><p id="bad-c7" style="color:#ccc">pale on white again</p></div>
+<div style="position:relative"><div style="position:absolute;inset:0;background:linear-gradient(#fff,#fff)"></div><p id="ok-c6" style="position:relative;color:#999">under pseudo-ish layer skip</p></div>
+<div style="background-image:radial-gradient(#fff,#ddd)"><p id="ok-c9" style="color:#aaa">radial gradient means no guess</p></div>
+<p id="bad-c5" style="color:#9e9e9e;background:#efefef">grey on off-white</p>
+<p id="ok-c5" style="color:#595959;background:#efefef">grey dark enough on off-white</p>
+</body></html>
