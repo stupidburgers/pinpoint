@@ -15,6 +15,7 @@ test('mapExecError: host rejection texts -> wire codes', () => {
     ['Page changed origin before the script ran', 'navigated'],
     ['Only web origins (http/https) can be scripted; file: pages are refused', 'origin_blocked'],
     ['about:blank pages are refused', 'origin_blocked'],
+    ['Preview scripts run only on a web page (http or https).', 'origin_blocked'],
     ['net::ERR_CONNECTION_REFUSED', 'page_unreachable'],
     ['ReferenceError: x is not defined', 'engine_error'],
     ['', 'engine_error']

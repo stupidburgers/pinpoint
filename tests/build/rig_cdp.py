@@ -73,3 +73,34 @@ def advanced_layout(c):
 
 def click_text(c, text, tag='button'):
     return c.eval("(()=>{const t=[...document.querySelectorAll('%s')].find(b=>b.textContent.trim()===%r); if(t) t.click(); return !!t})()" % (tag, text))
+
+
+def prepare(url='http://127.0.0.1:8791/index.html'):
+    """After the rig Desktop is up: enable the desktop half, open the Browser pane on `url`, show the right sidebar (Pinpoint pane)."""
+    import time
+    c = C()
+    c.eval("(()=>{const k='hermes.desktop.pluginDecisions.v2'; const d=JSON.parse(localStorage.getItem(k)||'{}'); if(d.pinpoint!==true){d.pinpoint=true; localStorage.setItem(k, JSON.stringify(d)); location.reload(); return 'reloading'} return 'enabled'})()")
+    time.sleep(8)
+    c = C()
+    has = lambda: c.eval("(()=>!!document.querySelector('input[placeholder=\"Enter address\"]'))()")
+    if not has():
+        press(c, 'L', 'KeyL', 76, 2 | 8); time.sleep(1.5)
+        click_text(c, "Don't show again"); time.sleep(0.5)
+    if has():
+        browse(c, url); time.sleep(3)
+    c.eval("(()=>{const b=document.querySelector('button[aria-label=\"Show right sidebar\"]'); if(b) b.click(); return !!b})()"); time.sleep(1)
+    return c
+
+
+if __name__ == '__main__' and len(sys.argv) > 1 and sys.argv[1] == 'prepare':
+    prepare(sys.argv[2] if len(sys.argv) > 2 else 'http://127.0.0.1:8791/index.html'); print('prepared')
+
+
+def send(c, text):
+    """Type `text` into the chat composer and press Enter (selector measured in the Q5 rig)."""
+    import time
+    r = c.eval("(()=>{const el=document.querySelector('[data-slot=\"composer-rich-input\"]'); if(!el) return 'NO EDITOR'; el.focus(); return 'ok'})()")
+    c.call("Input.insertText", text=text); time.sleep(0.5)
+    for t in ("rawKeyDown", "keyUp"):
+        c.call("Input.dispatchKeyEvent", type=t, key="Enter", code="Enter", windowsVirtualKeyCode=13, nativeVirtualKeyCode=13)
+    return r
