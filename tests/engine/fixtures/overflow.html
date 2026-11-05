@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>overflow</title></head>
+<body style="margin:0">
+<div id="ok-1" style="width:300px">fine</div>
+<div id="wrap"><div id="bad-1" style="width:1200px;height:20px;background:#ccc"><span id="ok-2" style="display:inline-block;width:1100px">child</span></div></div>
+<div style="overflow:auto;width:300px"><div id="ok-3" style="width:900px">scroll inside</div></div>
+<div style="overflow:hidden;width:300px"><div id="ok-4" style="width:900px">hidden inside</div></div>
+<div id="ok-5" style="position:fixed;left:-2000px;top:0;width:100px">skip link</div>
+<div id="bad-2" style="width:1000px;height:10px">second offender</div>
+<div id="ok-6" style="visibility:hidden;width:1500px;height:5px"></div>
+</body></html>

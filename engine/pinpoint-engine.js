@@ -278,8 +278,8 @@ function pinpointEngine(config) {
     return out.join('>');
   }
   function fingerprint(rule, el, variant) {
-    var tag = variant === 'heading' ? 'heading' : el.localName;
-    return [rule, tag, roleOf(el), stableKey(el), ancestorPath(el)].join('|');
+    var tag = variant && variant.indexOf('heading') === 0 ? 'heading' : el.localName;
+    return [rule, tag, roleOf(el), stableKey(el) + (variant ? '~' + variant : ''), ancestorPath(el)].join('|');
   }
   function idFor(rule, el, variant, occ) {
     var fp = fingerprint(rule, el, variant) + (occ ? '|#' + occ : '');
@@ -537,6 +537,268 @@ function pinpointEngine(config) {
         wcag: '4.1.2', note: (t === 'a' ? 'Link' : 'Control') + ' has no accessible name (icon-only?)',
         fix: 'Add aria-label or visible text that says what it does', measured: {}
       });
+    });
+  }
+
+  // ===== rules 6-14 =====
+  // ----- headings -----
+  function headingLevel(el) {
+    var m = /^h([1-6])$/.exec(el.localName);
+    if (m) return +m[1];
+    if ((el.getAttribute('role') || '').trim().toLowerCase() === 'heading') {
+      var n = parseInt(el.getAttribute('aria-level'), 10);
+      return n >= 1 && n <= 9 ? n : 2;
+    }
+    return 0;
+  }
+  function ruleHeadingOrder() {
+    var hs = [];
+    X.all.forEach(function (el) {
+      var lv = headingLevel(el);
+      if (lv && inTree(el)) hs.push({ el: el, level: lv });
+    });
+    X.checked['a11y.heading-order'] = hs.length;
+    var prevL = 0, h1 = 0;
+    hs.forEach(function (h) {
+      var empty = !(el_text(h.el));
+      if (empty) add('a11y.heading-order', h.el, 'low', { wcag: '2.4.6', variant: 'heading:empty', note: 'Heading <h' + h.level + '> is empty', fix: 'Add heading text or remove the empty heading', measured: { level: h.level } });
+      if (h.level === 1) {
+        h1++;
+        if (h1 > 1) add('a11y.heading-order', h.el, 'low', { wcag: '1.3.1', variant: 'heading:multi-h1', note: 'More than one h1 on the page', fix: 'Keep one h1 for the page title; use h2 for sections', measured: { level: 1 } });
+      }
+      if (prevL && h.level - prevL > 1) add('a11y.heading-order', h.el, 'low', { wcag: '1.3.1', variant: 'heading:jump', note: 'Heading level jumps from h' + prevL + ' to h' + h.level, fix: 'Use h' + (prevL + 1) + ' here (do not skip levels)', measured: { from: prevL, to: h.level } });
+      prevL = h.level;
+    });
+    if (!h1) {
+      var first = hs.length ? hs[0].el : (doc.querySelector('body') || root);
+      add('a11y.heading-order', first, 'low', { wcag: '2.4.6', variant: 'heading:no-h1', note: 'Page has no h1', fix: 'Add one h1 that names the page', measured: { headings: hs.length } });
+    }
+  }
+  function el_text(el) { return attrName(el) || contentName(el, false, false); }
+
+  // ----- focus indicator (static CSSOM scan, never calls focus()) -----
+  function noneVal(v) { return !v || v === 'none' || v === 'initial'; }
+  function setsOutlineNone(st) { return st.outlineStyle === 'none' || /^0(px)?$/.test(st.outlineWidth || ''); }
+  function setsReplacement(st) {
+    if (st.outlineStyle && st.outlineStyle !== 'none' && !/^0(px)?$/.test(st.outlineWidth || '')) return true;
+    if (!noneVal(st.boxShadow)) return true;
+    if (st.borderColor || st.borderTopColor || st.borderBottomColor || st.borderLeftColor || st.borderRightColor) return true;
+    if (st.backgroundColor || st.background) return true;
+    if (st.textDecorationLine && st.textDecorationLine !== 'none') return true;
+    if (st.textDecoration && st.textDecoration !== 'none') return true;
+    return !noneVal(st.filter);
+  }
+  function prepRule(r) {
+    var st = r.style, rm = setsOutlineNone(st), rep = setsReplacement(st), out = [];
+    if (!rm && !rep) return out;
+    String(r.selectorText).split(/,(?![^(]*\))/).forEach(function (part) {
+      part = part.trim();
+      if (!part || /:not\(\s*:focus/.test(part) || /:has\(/.test(part)) return;
+      var compounds = part.split(/\s*[>+~]\s*|\s+(?![^(]*\))/), last = compounds[compounds.length - 1];
+      var focus = /:focus/.test(last) || /:focus-within/.test(part);
+      if (!rm && !focus) return;
+      var sel = part.replace(/:focus-visible|:focus-within|:focus/g, '').trim();
+      if (!sel || /[>+~]$/.test(sel)) sel += '*';
+      sel = sel.replace(/([>+~])\s*$/, '$1 *');
+      out.push({ sel: sel, focus: focus, rm: rm, rep: rep && focus });
+    });
+    return out;
+  }
+  function isFocusable(el) {
+    var t = el.localName;
+    if (t === 'a') return el.hasAttribute('href');
+    if (t === 'input') return (el.getAttribute('type') || '').toLowerCase() !== 'hidden';
+    if (t === 'button' || t === 'select' || t === 'textarea' || t === 'summary') return true;
+    if (el.hasAttribute('contenteditable') && el.getAttribute('contenteditable') !== 'false') return true;
+    var ti = el.getAttribute('tabindex');
+    return ti !== null && parseInt(ti, 10) >= 0;
+  }
+  function ruleFocus() {
+    var scopes = new Map(), xo = 0;
+    function walkRules(list, out) {
+      for (var i = 0; i < list.length; i++) {
+        var r = list[i];
+        if (r.selectorText !== undefined && r.style) { prepRule(r).forEach(function (p) { out.push(p); }); }
+        else if (typeof CSSMediaRule !== 'undefined' && r instanceof CSSMediaRule) { if (matchMedia(r.media.mediaText).matches) walkRules(r.cssRules, out); }
+        else if (typeof CSSSupportsRule !== 'undefined' && r instanceof CSSSupportsRule) { if (CSS.supports(r.conditionText)) walkRules(r.cssRules, out); }
+        else if (typeof CSSLayerBlockRule !== 'undefined' && r instanceof CSSLayerBlockRule) walkRules(r.cssRules, out);
+        else if (r.styleSheet) sheet(r.styleSheet, out);
+      }
+    }
+    function sheet(sh, out) {
+      var list;
+      try { list = sh.cssRules; } catch (e) { xo++; return; }
+      if (list) walkRules(list, out);
+    }
+    function scopeFor(rt) {
+      var s = scopes.get(rt);
+      if (s) return s;
+      s = [];
+      scopes.set(rt, s);
+      var sheets = [].slice.call(rt.styleSheets || []).concat([].slice.call(rt.adoptedStyleSheets || []));
+      sheets.forEach(function (sh) { if (sh.disabled) return; if (sh.media && sh.media.mediaText && !matchMedia(sh.media.mediaText).matches) return; sheet(sh, s); });
+      return s;
+    }
+    X.els.forEach(function (el) {
+      if (!isFocusable(el) || isDisabled(el) || !vis(el)) return;
+      X.checked['a11y.focus-indicator']++;
+      var rules = scopeFor(rootOf(el)), removal = false, repl = false, st = el.style;
+      if (st && setsOutlineNone(st)) removal = true;
+      for (var i = 0; i < rules.length; i++) {
+        var p = rules[i];
+        if (!((p.rm && !removal) || (p.rep && !repl))) continue;
+        var hit = false;
+        try { hit = el.matches(p.sel); } catch (e) {}
+        if (!hit) continue;
+        if (p.rm) removal = true;
+        if (p.rep) repl = true;
+      }
+      if (removal && !repl) {
+        add('a11y.focus-indicator', el, 'medium', {
+          wcag: '2.4.7', heuristic: true, confidence: 'medium',
+          note: 'Author CSS removes the focus outline and no :focus/:focus-visible rule replaces it (static CSS scan)',
+          fix: 'Add :focus-visible { outline: 2px solid currentColor; outline-offset: 2px } for this element', measured: {}
+        });
+      }
+    });
+    if (xo) limit('cross-origin stylesheets not scanned: ' + xo);
+  }
+
+  // ----- page level -----
+  function ruleLang() {
+    X.checked['a11y.lang'] = 1;
+    if (!/\S/.test(root.getAttribute('lang') || '')) {
+      add('a11y.lang', root, 'medium', { wcag: '3.1.1', note: '<html> has no lang attribute', fix: 'Add lang="en" (or the page language) to <html>', measured: {} });
+    }
+  }
+  function ruleTitle() {
+    X.checked['a11y.page-title'] = 1;
+    if (!/\S/.test(doc.title || '')) {
+      var t = doc.querySelector('title');
+      add('a11y.page-title', t || root, 'low', { wcag: '2.4.2', anchorEl: root, note: 'Page has no <title> text', fix: 'Add a short, unique <title> that names the page', measured: {} });
+    }
+  }
+  function ruleViewportZoom() {
+    var metas = doc.querySelectorAll('meta[name="viewport" i]');
+    X.checked['a11y.viewport-zoom'] = metas.length;
+    if (!metas.length) return;
+    var m = metas[metas.length - 1], c = (m.getAttribute('content') || '').toLowerCase(), bad = false, max = -1;
+    c.split(/[,;]/).forEach(function (kv) {
+      var p = kv.split('='), k = (p[0] || '').trim(), v = (p[1] || '').trim();
+      if (k === 'user-scalable' && (v === 'no' || v === '0')) bad = true;
+      if (k === 'maximum-scale') { var n = parseFloat(v); if (!isNaN(n)) { max = n; if (n < 2) bad = true; } }
+    });
+    if (bad) add('a11y.viewport-zoom', m, 'medium', { wcag: '1.4.4', anchorEl: root, note: 'Viewport meta blocks pinch zoom (user-scalable=no or maximum-scale<2)', fix: 'Remove user-scalable=no and maximum-scale from the viewport meta', measured: { maxScale: max } });
+  }
+
+  // ----- horizontal overflow -----
+  function ruleHOverflow() {
+    X.checked['layout.h-overflow'] = 1;
+    var vw = X.vw, sw = root.scrollWidth;
+    if (sw <= vw + 1) return;
+    var bodyEl = doc.querySelector('body'), rs = gcs(root), bs = bodyEl ? gcs(bodyEl) : null;
+    function clipX(v) { return v === 'hidden' || v === 'clip'; }
+    if (clipX(rs.overflowX) || (rs.overflowX === 'visible' && bs && clipX(bs.overflowX))) {
+      limit('horizontal overflow of ' + (sw - vw) + 'px is hidden by overflow-x on the root; not reported');
+      return;
+    }
+    var hk = new Map();
+    function blocked(el) {
+      var v = hk.get(el);
+      if (v !== undefined) return v;
+      var p = el.parentElement;
+      v = false;
+      if (p && p !== root && p !== bodyEl) {
+        var ps = gcs(p);
+        v = (ps.overflowX !== 'visible') || ps.position === 'fixed' || blocked(p);
+      }
+      hk.set(el, v);
+      return v;
+    }
+    var cands = [];
+    function exceeds(el) { var r = rectOf(el); return r.x + r.w > vw + 1; }
+    X.all.forEach(function (el) {
+      if (el.ownerDocument !== doc || el === root) return;
+      var cs = gcs(el);
+      if (cs.visibility === 'hidden' || cs.position === 'fixed' || el.getClientRects().length === 0) return;
+      if (!exceeds(el) || blocked(el)) return;
+      var p = el.parentElement;
+      if (p && p !== root && exceeds(p) && !blocked(p) && gcs(p).visibility !== 'hidden') return;
+      var r = rectOf(el);
+      cands.push({ el: el, over: Math.ceil(r.x + r.w - vw), order: X.idx.get(el) });
+    });
+    cands.sort(function (a, b) { return b.over - a.over || a.order - b.order; });
+    if (!cands.length) {
+      add('layout.h-overflow', root, 'medium', { wcag: '1.4.10', confidence: 'medium', note: 'Page is ' + (sw - vw) + 'px wider than the viewport; the source element was not identified', fix: 'Find the element wider than the viewport (images, tables, long words, fixed widths) and constrain it', measured: { over: sw - vw, vw: vw } });
+      return;
+    }
+    cands.slice(0, 5).forEach(function (c) {
+      add('layout.h-overflow', c.el, 'medium', { wcag: '1.4.10', note: 'Extends ' + c.over + 'px beyond the ' + vw + 'px viewport and causes horizontal scrolling', fix: 'Constrain its width (max-width:100%, wrapping) or let it scroll inside its own container', measured: { over: c.over, vw: vw } });
+    });
+  }
+
+  // ----- typography -----
+  function ruleTextSmall() {
+    X.els.forEach(function (el) {
+      if (NOTEXT[el.localName] || el.localName === 'sub' || el.localName === 'sup') return;
+      var ti = textInfo(el);
+      if (!ti) return;
+      var cs = gcs(el), px = parseFloat(cs.fontSize);
+      if (!(px >= 1)) return;
+      X.checked['type.text-small']++;
+      if (px >= 12 || !textVisible(el, ti)) return;
+      if (/small-caps/.test(cs.fontVariantCaps || '') || el.closest('sub,sup')) return;
+      px = Math.round(px * 10) / 10;
+      add('type.text-small', el, px < 10 ? 'medium' : 'low', { wcag: '1.4.4', note: 'Text is ' + px + 'px; below 12px', fix: 'Use at least 12px (14-16px for body text)', measured: { px: px } });
+    });
+  }
+  function ruleLineHeight() {
+    X.els.forEach(function (el) {
+      var cs0 = null;
+      var ti = textInfo(el);
+      if (!ti || ti.lines < 2 || NOTEXT[el.localName]) return;
+      cs0 = gcs(el);
+      if (cs0.display === 'inline' || headingLevel(el)) return;
+      var lh = cs0.lineHeight;
+      if (lh === 'normal') return;
+      var l = parseFloat(lh), fs = parseFloat(cs0.fontSize);
+      if (!(l > 0) || !(fs > 0)) return;
+      X.checked['type.line-height']++;
+      if (!textVisible(el, ti) || l >= 1.2 * fs - 0.05) return;
+      add('type.line-height', el, 'low', {
+        wcag: '1.4.12', note: 'Line height ' + fmt2(l) + 'px is ' + fmt2(l / fs) + '\u00d7 the ' + fmt2(fs) + 'px font size; at least 1.2\u00d7 is needed',
+        fix: 'Set line-height to 1.5 (never below 1.2) on this text', measured: { lineHeight: fmt2(l), fontSize: fmt2(fs), lines: ti.lines }
+      });
+    });
+  }
+
+  // ----- tight targets -----
+  function ruleTight() {
+    var T = targets().filter(function (t) { return !t.inl && Math.min(t.r.w, t.r.h) < 44; });
+    var grid = {}, CELL = 64;
+    function cells(r, pad, fn) {
+      for (var a = Math.floor((r.x - pad) / CELL); a <= Math.floor((r.x + r.w + pad) / CELL); a++)
+        for (var b = Math.floor((r.y - pad) / CELL); b <= Math.floor((r.y + r.h + pad) / CELL); b++) fn(a + ',' + b);
+    }
+    T.forEach(function (t, i) { cells(t.r, 0, function (k) { (grid[k] = grid[k] || []).push(i); }); });
+    T.forEach(function (t, j) {
+      X.checked['spacing.tight-targets']++;
+      var best = null, seen = {};
+      cells(t.r, 8, function (k) {
+        (grid[k] || []).forEach(function (i) {
+          if (i >= j || seen[i]) return;
+          seen[i] = 1;
+          var u = T[i];
+          if (u.el.contains(t.el) || t.el.contains(u.el)) return;
+          var dx = Math.max(u.r.x - (t.r.x + t.r.w), t.r.x - (u.r.x + u.r.w), 0), dy = Math.max(u.r.y - (t.r.y + t.r.h), t.r.y - (u.r.y + u.r.h), 0);
+          var gap = Math.sqrt(dx * dx + dy * dy);
+          if (gap < 8 && (best === null || gap < best)) best = gap;
+        });
+      });
+      if (best !== null) {
+        best = Math.round(best * 10) / 10;
+        add('spacing.tight-targets', t.el, 'low', { wcag: '2.5.8', note: 'Only ' + best + 'px from the previous small target (both under 44px)', fix: 'Leave at least 8px between small targets or enlarge them to 44px', measured: { gap: best } });
+      }
     });
   }
 
@@ -884,6 +1146,15 @@ function pinpointEngine(config) {
   register('a11y.img-alt', ruleImgAlt);
   register('a11y.form-label', ruleFormLabel);
   register('a11y.control-name', ruleControlName);
+  register('a11y.heading-order', ruleHeadingOrder);
+  register('a11y.focus-indicator', ruleFocus);
+  register('a11y.lang', ruleLang);
+  register('a11y.page-title', ruleTitle);
+  register('a11y.viewport-zoom', ruleViewportZoom);
+  register('layout.h-overflow', ruleHOverflow);
+  register('type.text-small', ruleTextSmall);
+  register('type.line-height', ruleLineHeight);
+  register('spacing.tight-targets', ruleTight);
   //@@REGISTER-END
 
   var overlayHost = null;
