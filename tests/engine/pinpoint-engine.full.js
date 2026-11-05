@@ -284,7 +284,7 @@ function pinpointEngine(config) {
   return {
    parseColor: parseColor, ratio: ratio, lum: lum, suggestFix: suggestFix, fnv1a: fnv1a, sanitize: sanitize,
    selectorFor: selectorFor, resolve: resolveSel, fingerprint: fingerprint, idFor: idFor, urlKey: urlKey,
-   hex: hex, over: over
+   hex: hex, over: over, layout: layout
   };
  }
 
@@ -1152,7 +1152,7 @@ function pinpointEngine(config) {
   if (overlayHost && overlayHost.parentNode) overlayHost.parentNode.removeChild(overlayHost);
   overlayHost = null;
  }
- function pinCount() { return entries.filter(function(e) { return !e.lost && !e.faded; }).length; }
+ function pinCount() { return entries.filter(function(e) { return !e.lost && !e.faded && !e.off; }).length; }
  function clear() { removeOverlay(); lastSum = ''; }
 
  function nodeHash(el) { return fnv1a(normText(el.localName === 'html' || el.localName === 'body' ? '' : textOf(el, 80))); }
@@ -1205,8 +1205,9 @@ function pinpointEngine(config) {
     if (!e.el || !e.el.isConnected) { e.el = resolveFinding(e.f); if (e.el && ro) ro.observe(e.el); }
     e.lost = !e.el;
     if (e.el) {
-     var r = e.el.getBoundingClientRect();
-     if (!r.width && !r.height) r = { left: 0, top: 0, right: vw, bottom: vh, width: vw, height: vh };
+     var r;
+     if (e.el === e.el.ownerDocument.documentElement || e.el.localName === 'body') r = { left: 0, top: 0, right: vw, bottom: vh, width: vw, height: vh };
+     else { r = e.el.getBoundingClientRect(); if (!r.width || !r.height) r = { left: 0, top: 0, right: vw, bottom: vh, width: vw, height: vh }; }
      e.vr = r;
      if (!(r.right <= 0 || r.bottom <= 0 || r.left >= vw || r.top >= vh)) {
       var ax = clampN(r.left, 14, vw - 14), ay = clampN(r.top, 14, vh - 14), p = place(ax, ay, vw, vh, placed);
@@ -1219,7 +1220,8 @@ function pinpointEngine(config) {
      }
     }
    }
-   e.pin.hidden = hide;
+   e.off = hide && !e.lost && !e.faded;
+  e.pin.hidden = hide;
    if (hide && e.line) e.line.style.display = 'none';
    if (hide && openId === e.f.id) closeCard();
    if (!hide && openId === e.f.id) {
