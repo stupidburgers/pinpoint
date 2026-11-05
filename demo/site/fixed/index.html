@@ -1,0 +1,201 @@
+<!doctype html>
+<html id="top" lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumen: coffee roasted to order, at your door in 48 hours</title>
+<meta name="description" content="Lumen is a small-batch coffee subscription. Every bag is roasted the day it ships.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap bar">
+    <a class="brand" href="#top" aria-label="Lumen home">Lumen</a>
+    <nav class="nav" aria-label="Primary">
+      <a id="nav-coffees" href="#coffees">Coffees</a>
+      <a id="nav-how" href="#how">How it works</a>
+      <a id="nav-pricing" href="#pricing">Pricing</a>
+      <a id="nav-team" href="#team">Roasters</a>
+    </nav>
+    <button id="menu-btn" class="icon-btn" type="button" aria-label="Open menu">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <h1>Coffee that is still warm from the roaster.</h1>
+      <p id="hero-sub" class="hero-sub">We roast each bag the morning it ships, so what reaches your door has had two days to settle, not two months on a shelf.</p>
+      <div class="actions">
+        <a id="cta-primary" class="btn btn-primary" href="#pricing">Start my first box</a>
+        <button id="cta-secondary" class="play-btn" type="button" aria-label="Watch a roast, 40 seconds">
+          <svg viewBox="0 0 10 10" width="8" height="8" aria-hidden="true"><path d="M2 1l7 4-7 4z" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </div>
+    <figure class="hero-art">
+      <img id="hero-img" src="../assets/hero.svg" width="960" height="1080" alt="A white cup of black coffee steaming on a table covered in roasted beans">
+    </figure>
+  </div>
+</section>
+
+<section id="how" class="how">
+  <div class="wrap">
+    <h2 class="section-title">From the drum to your kitchen in three steps</h2>
+    <ol class="steps">
+      <li><span class="step-n" aria-hidden="true">1</span><h3>You pick a pace</h3><p id="ok-lede">Choose how many bags a month and how dark you like it. Change either one the night before a roast and we will follow.</p></li>
+      <li><span class="step-n" aria-hidden="true">2</span><h3>We roast on Tuesday</h3><p>Small batches of six kilos, cooled on the same table we pack on. Each bag is stamped with the day it left the drum.</p></li>
+      <li><span class="step-n" aria-hidden="true">3</span><h3>It arrives by Thursday</h3><p>Flat bags that fit a letterbox, so nobody has to be home. Pause, skip or cancel from the link in the packing slip.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="coffees" class="coffees">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title">Three coffees this month</h2>
+      <p class="section-sub">We rotate with the harvest. These are what is in the drum right now.</p>
+    </div>
+    <div class="coffee-grid">
+      <article class="coffee">
+        <img id="ok-feature-img" src="../assets/coffee-ethiopia.svg" width="640" height="480" alt="Light roasted Ethiopian beans on a pale orange ground">
+        <div class="coffee-body">
+          <h3>Guji Hambela</h3>
+          <p>Peach tea, bergamot and a clean finish. Washed, light roast.</p>
+          <div class="coffee-actions">
+            <a class="btn btn-ghost btn-sm" href="#pricing">Add to my box</a><button id="fav-btn" class="fav" type="button" aria-label="Save Guji Hambela to favourites" aria-pressed="false">
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            </button>
+          </div>
+        </div>
+      </article>
+      <article class="coffee">
+        <img src="../assets/coffee-colombia.svg" width="640" height="480" alt="Medium roasted Colombian beans on a sage green ground">
+        <div class="coffee-body">
+          <h3>Huila Pink Bourbon</h3>
+          <p>Red apple, panela and a cocoa base. Washed, medium roast.</p>
+          <div class="coffee-actions"><a class="btn btn-ghost btn-sm" href="#pricing">Add to my box</a></div>
+        </div>
+      </article>
+      <article class="coffee">
+        <img src="../assets/coffee-kenya.svg" width="640" height="480" alt="Dark roasted Kenyan beans on a terracotta ground">
+        <div class="coffee-body">
+          <h3>Nyeri AA</h3>
+          <p>Blackcurrant, grapefruit pith and a syrupy body. Washed, medium-dark.</p>
+          <div class="coffee-actions"><a class="btn btn-ghost btn-sm" href="#pricing">Add to my box</a></div>
+        </div>
+      </article>
+    </div>
+    <div class="tag-row" aria-label="Browse by origin">
+      <a id="tag-1" href="#coffees">Ethiopia</a>
+      <a id="tag-2" href="#coffees">Colombia</a>
+      <a id="tag-3" href="#coffees">Kenya</a>
+      <a id="tag-4" href="#coffees">Brazil</a>
+    </div>
+  </div>
+</section>
+
+<section id="team" class="team">
+  <div class="wrap team-grid">
+    <figure>
+      <img id="team-photo" src="../assets/team.svg" width="800" height="600" alt="Ines, Tomas and Priya standing behind the roaster">
+    </figure>
+    <div class="tight">
+      <h2 class="section-title">Three people, one drum</h2>
+      <p id="tight-p">Ines learned to roast in her uncle's garage in Huila. Tomas used to repair espresso machines and still cannot walk past a leaking group head. Priya keeps the spreadsheet that tells us when each bag left the drum, and she checks it twice before the van comes.</p>
+    </div>
+  </div>
+</section>
+
+<section id="pricing" class="pricing">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title">Pick a pace</h2>
+      <p class="section-sub">Every plan ships free. Skip or pause any month.</p>
+    </div>
+    <div class="plans">
+      <div class="plan">
+        <h3 id="plan-starter">Starter</h3>
+        <p class="price"><span class="amount">$14</span> a month</p>
+        <p class="plan-desc">One 250 g bag, roasted for filter or espresso.</p>
+        <p class="price-note" id="price-note-1">Billed monthly, $14.00 per delivery.</p>
+        <a class="btn btn-ghost" href="#join">Choose Starter</a>
+      </div>
+      <div class="plan plan-feature">
+        <h3>Regular</h3>
+        <p class="price"><span class="amount">$26</span> a month</p>
+        <p class="plan-desc">Two 250 g bags, one of them always something new.</p>
+        <p class="price-note" id="price-note-2">Billed monthly, $26.00 per delivery.</p>
+        <a class="btn btn-primary-inv" href="#join">Choose Regular</a>
+      </div>
+      <div class="plan">
+        <h3>Household</h3>
+        <p class="price"><span class="amount">$48</span> a month</p>
+        <p class="plan-desc">Four 250 g bags, and the filter papers are on us.</p>
+        <p class="price-note" id="price-note-3">Billed monthly, $48.00 per delivery.</p>
+        <a class="btn btn-ghost" href="#join">Choose Household</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="quote">
+  <div class="wrap">
+    <figure>
+      <blockquote><p>The Tuesday bag is the first thing I smell when I open the letterbox. I stopped buying supermarket coffee in the second week.</p></blockquote>
+      <figcaption>Marta, subscriber (a fictional customer for this demo)</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="join" class="join">
+  <div class="wrap join-grid">
+    <div>
+      <h2 class="section-title">Hear when the next roast is ready</h2>
+      <p class="section-sub">One email on roast day. No discount codes.</p>
+    </div>
+    <form class="join-form" action="#join" onsubmit="return false">
+      <div class="field">
+        <label for="ok-name">Your first name</label>
+        <input id="ok-name" name="name" type="text" autocomplete="given-name">
+      </div>
+      <div class="field">
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <button id="ok-subscribe" class="btn btn-primary" type="submit">Tell me</button>
+    </form>
+  </div>
+</section>
+
+<div class="band-clip">
+  <div class="banner-wide" id="banner-wide">
+    <span>Tue roast</span><span>Wed pack</span><span>Thu delivered</span><span>Fri brew</span><span>Sat repeat</span><span>Sun rest</span><span>Mon order</span>
+  </div>
+</div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap foot-grid">
+    <div>
+      <p class="brand brand-foot">Lumen</p>
+      <p class="foot-note">Roasted in a shed in Porto Alegre. Lumen is a fictional company built to test Pinpoint.</p>
+    </div>
+    <nav aria-label="Footer">
+      <ul>
+        <li><a href="#coffees">Coffees</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#team">Roasters</a></li>
+      </ul>
+    </nav>
+    <p id="fine-print" class="fine">Prices in US dollars. Delivery windows are estimates. Roast dates are printed on the bag.</p>
+  </div>
+</footer>
+
+<script src="../app.js"></script>
+</body>
+</html>

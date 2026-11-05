@@ -1,0 +1,163 @@
+{
+ "site": "Lumen",
+ "note": "Ground truth. Every entry must appear in an audit of demo/site/index.html at a 1280 px viewport; no finding may anchor on an id starting with ok-. fixed/ must contain none of them. Tap-target flaws depend on the WCAG 2.5.8 spacing exception: the 24 px circle around each icon button must hit a neighbouring target, hence the 2 px gaps.",
+ "viewport": {
+  "w": 1280,
+  "h": 800
+ },
+ "controls": [
+  "ok-lede",
+  "ok-feature-img",
+  "ok-name",
+  "ok-subscribe"
+ ],
+ "flaws": [
+  {
+   "rule": "a11y.contrast",
+   "ref": "hero-sub",
+   "expect": true,
+   "flaw": 1,
+   "why": "#b8ad9f on #f4ecdf, about 1.9:1"
+  },
+  {
+   "rule": "a11y.contrast",
+   "ref": "price-note-1",
+   "expect": true,
+   "flaw": 2,
+   "why": "#978a7b on #fffaf1, about 3.2:1, 14 px normal text"
+  },
+  {
+   "rule": "a11y.contrast",
+   "ref": "price-note-3",
+   "expect": true,
+   "flaw": 2,
+   "why": "same on the third plan card"
+  },
+  {
+   "rule": "a11y.tap-target",
+   "ref": "cta-secondary",
+   "expect": true,
+   "flaw": 3,
+   "why": "18x18 px, 2 px from the primary button"
+  },
+  {
+   "rule": "a11y.tap-target",
+   "ref": "fav-btn",
+   "expect": true,
+   "flaw": 3,
+   "why": "20x20 px, 2 px from the 'Add to my box' link"
+  },
+  {
+   "rule": "a11y.img-alt",
+   "ref": "hero-img",
+   "expect": true,
+   "flaw": 4,
+   "why": "no alt attribute"
+  },
+  {
+   "rule": "a11y.img-alt",
+   "ref": "team-photo",
+   "expect": true,
+   "flaw": 5,
+   "why": "alt is a filename (IMG_2041.jpg)"
+  },
+  {
+   "rule": "a11y.form-label",
+   "ref": "email",
+   "expect": true,
+   "flaw": 6,
+   "why": "placeholder is the only label"
+  },
+  {
+   "rule": "a11y.control-name",
+   "ref": "menu-btn",
+   "expect": true,
+   "flaw": 7,
+   "why": "icon-only button without a name"
+  },
+  {
+   "rule": "a11y.heading-order",
+   "ref": "plan-starter",
+   "expect": true,
+   "flaw": 8,
+   "why": "h2 -> h4 jump (first plan title)"
+  },
+  {
+   "rule": "type.text-small",
+   "ref": "fine-print",
+   "expect": true,
+   "flaw": 9,
+   "why": "10.5 px"
+  },
+  {
+   "rule": "layout.h-overflow",
+   "ref": "banner-wide",
+   "expect": true,
+   "flaw": 10,
+   "why": "1600 px element, page scrolls sideways at any viewport < 1600"
+  },
+  {
+   "rule": "spacing.tight-targets",
+   "ref": "tag-2",
+   "expect": true,
+   "flaw": 11,
+   "why": "chips 20 px tall, 6 px apart (pair 1-2, anchored on the second)"
+  },
+  {
+   "rule": "spacing.tight-targets",
+   "ref": "tag-3",
+   "expect": true,
+   "flaw": 11,
+   "why": "pair 2-3"
+  },
+  {
+   "rule": "spacing.tight-targets",
+   "ref": "tag-4",
+   "expect": true,
+   "flaw": 11,
+   "why": "pair 3-4"
+  },
+  {
+   "rule": "a11y.focus-indicator",
+   "ref": "nav-coffees",
+   "expect": true,
+   "flaw": 12,
+   "why": "`.nav a {outline:none}` with no replacement (heuristic)"
+  },
+  {
+   "rule": "a11y.focus-indicator",
+   "ref": "nav-how",
+   "expect": true,
+   "flaw": 12,
+   "why": "`.nav a {outline:none}` with no replacement (heuristic)"
+  },
+  {
+   "rule": "a11y.focus-indicator",
+   "ref": "nav-pricing",
+   "expect": true,
+   "flaw": 12,
+   "why": "`.nav a {outline:none}` with no replacement (heuristic)"
+  },
+  {
+   "rule": "a11y.focus-indicator",
+   "ref": "nav-team",
+   "expect": true,
+   "flaw": 12,
+   "why": "`.nav a {outline:none}` with no replacement (heuristic)"
+  },
+  {
+   "rule": "a11y.lang",
+   "ref": "top",
+   "expect": true,
+   "flaw": 13,
+   "why": "<html id=top> has no lang"
+  },
+  {
+   "rule": "type.line-height",
+   "ref": "tight-p",
+   "expect": true,
+   "flaw": 14,
+   "why": "line-height 1.0 on a 3+ line paragraph"
+  }
+ ]
+}
