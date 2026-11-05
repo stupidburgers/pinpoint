@@ -9,7 +9,7 @@ from ._sanitize import clean_selector, clean_text
 MAX_KEYS = 20
 MAX_PINS = 200
 MAX_AUDITS = 50
-STATUSES = ("open", "fixed", "dismissed", "new")
+STATUSES = ("open", "fixed", "gone", "dismissed", "new")
 _DEFAULT_PORT = {"http": 80, "https": 443}
 _DROP_PARAMS = ("fbclid", "gclid")
 
@@ -148,6 +148,37 @@ def _pin_rule(pin_id, finding_raw):
     return ""
 
 
+def _present_set(result):
+    """Anchor signatures of elements present on the page, or None when completeness is unknown."""
+    pa = result.get("presentAnchors")
+    if not isinstance(pa, list) or any(not isinstance(x, str) for x in pa) or len(pa) >= 2000:
+        return None
+    return set(pa)
+
+
+def _pin_sig(finding_raw):
+    try:
+        f = json.loads(finding_raw) if isinstance(finding_raw, str) else finding_raw
+        sig = f.get("anchor", {}).get("sig") if isinstance(f, dict) else None
+    except (TypeError, ValueError, AttributeError):
+        sig = None
+    return sig if isinstance(sig, str) and sig else None
+
+
+def format_receipt(prev_score, score, fixed, gone, remaining, not_rechecked):
+    """Compact pasteable Markdown proof of a re-audit."""
+    def sc(v):
+        return "?" if v is None else str(v)
+    lines = [f"**Pinpoint fix receipt** - score {sc(prev_score)} -> {sc(score)}",
+             f"- fixed (same element re-measured, now passing): {len(fixed)}"]
+    lines += [f"  - `{i}`" for i in fixed[:10]]
+    lines.append(f"- gone (element no longer on the page, NOT proof of a fix): {len(gone)}")
+    lines += [f"  - `{i}`" for i in gone[:10]]
+    lines.append(f"- still open: {remaining}; not re-checked: {len(not_rechecked)}")
+    return "
+".join(lines)
+
+
 def record_audit(result, source="user"):
     """Store one AuditResult; returns {audit_id, delta, url_key, findings(visible), suppressed, score, counts}."""
     try:
@@ -180,20 +211,28 @@ def record_audit(result, source="user"):
             prev_open = {i for i, p in pins.items() if p[0] in ("open", "new")}
             coverage = _extract_coverage(result)
             fixed = []
+            gone = []
             not_rechecked = []
+            present = _present_set(result)
             for i in pins:
                 if i in prev_open and i not in cur:
                     p_rule = _pin_rule(i, pins[i][1])
                     if not p_rule or p_rule not in coverage:
                         not_rechecked.append(i)
                     else:
-                        fixed.append(i)
+                        sig = _pin_sig(pins[i][1])
+                        if present is not None and sig is not None and sig not in present:
+                            gone.append(i)
+                        else:
+                            fixed.append(i)
             new = [f["id"] for f in visible if f["id"] not in pins]
             remaining = len(cur & prev_open)
             cid = c.execute("insert into audits(url_key,url,t,score,counts,source) values(?,?,?,?,?,?)",
                             (key, url, now, score, json.dumps(counts), clean_text(source, 8))).lastrowid
             for i in fixed:
                 c.execute("update pins set status='fixed' where url_key=? and id=?", (key, i))
+            for i in gone:
+                c.execute("update pins set status='gone' where url_key=? and id=?", (key, i))
             seen = set()
             for f in visible:
                 if f["id"] in seen:
@@ -210,9 +249,10 @@ def record_audit(result, source="user"):
                 c.execute("update pins set last_seen=? where url_key=? and id=?", (now, key, i))
             delta = None
             if prev_audit:
-                delta = {"prev_score": prev_audit[0], "fixed": fixed, "new": new, "remaining": remaining}
+                delta = {"prev_score": prev_audit[0], "fixed": fixed, "gone": gone, "new": new, "remaining": remaining}
                 delta["not_rechecked"] = not_rechecked
                 delta["unresolved"] = not_rechecked
+                delta["receipt"] = format_receipt(prev_audit[0], score, fixed, gone, remaining, not_rechecked)
             _prune(c, key, not_rechecked)
         return {"audit_id": cid, "delta": delta, "url_key": key, "findings": visible,
                 "suppressed": suppressed, "score": score, "counts": counts}

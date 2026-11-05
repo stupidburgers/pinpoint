@@ -234,9 +234,10 @@ export function normalizeDelta(d) {
   if (!Array.isArray(d.fixed) && !Array.isArray(d.new)) return null
   const out = {
     prev_score: typeof d.prev_score === 'number' ? d.prev_score : null,
-    fixed: arr(d.fixed), new: arr(d.new),
+    fixed: arr(d.fixed), gone: arr(d.gone), new: arr(d.new),
     remaining: typeof d.remaining === 'number' ? d.remaining : Array.isArray(d.remaining) ? d.remaining.length : 0
   }
+  if (typeof d.receipt === 'string') out.receipt = d.receipt.slice(0, 1500)
   if (Array.isArray(d.not_rechecked)) out.not_rechecked = arr(d.not_rechecked)
   if (Array.isArray(d.unresolved)) out.unresolved = arr(d.unresolved)
   return out

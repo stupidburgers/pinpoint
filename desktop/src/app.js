@@ -124,7 +124,7 @@ function localSave(key, entry) {
 async function previousFor(key) {
   const st = await storeGet(key)
   if (st && Array.isArray(st.pins)) {
-    const live = st.pins.filter(p => p.status !== 'dismissed' && p.status !== 'fixed' && p.finding).map(p => p.finding)
+    const live = st.pins.filter(p => p.status !== 'dismissed' && p.status !== 'fixed' && p.status !== 'gone' && p.finding).map(p => p.finding)
     const dis = st.pins.filter(p => p.status === 'dismissed' && p.finding).map(p => p.finding)
     const known = live.length > 0 || !!st.last || st.pins.length > 0
     return { findings: known ? live : null, dismissed: dis, seen: st.pins.map(p => p.id), score: st.last ? st.last.score : null }
@@ -713,7 +713,7 @@ function resultView(s) {
         h('button', {
           type: 'button', className: 'pp-btn sm',
           'aria-label': 'Copy Fix Receipt',
-          onClick: () => copyText(formatFixReceipt(r.score, s.prevScore, s.fixed, open.length, s.url), 'receiptCopied')
+          onClick: () => copyText(s.delta && s.delta.receipt ? s.delta.receipt : formatFixReceipt(r.score, s.prevScore, s.fixed, open.length, s.url), 'receiptCopied')
         }, s.receiptCopied ? 'Copied' : 'Copy Fix Receipt')) : null,
       h('div', { className: 'pp-actions' },
         h('button', { type: 'button', className: 'pp-btn', disabled: counts.high === 0, onClick: () => void fixAllHigh(), title: 'Send up to 8 high-severity findings to Hermes' }, ICON.send(), 'Fix all high')))))
