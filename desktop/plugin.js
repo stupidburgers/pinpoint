@@ -596,7 +596,8 @@ async function handleRequest(p) {
   if (!C.preview.isAvailable()) { log('request ignored (no preview in this window)', { id }); return }
   M.handled.add(id)
   if (M.handled.size > 200) M.handled.delete(M.handled.values().next().value)
-  try { await C.rest('/ack/' + encodeURIComponent(id), { method: 'POST', body: { window: WIN } }) } catch (e) {
+  let claimToken = ''
+  try { const ar = await C.rest('/ack/' + encodeURIComponent(id), { method: 'POST', body: { window: WIN } }); claimToken = ar && typeof ar.claim_token === 'string' ? ar.claim_token : '' } catch (e) {
     log('ack not granted', { id, status: httpStatusOf(e) }); return
   }
   log('request claimed', { id })
@@ -604,7 +605,7 @@ async function handleRequest(p) {
     host.notify({ kind: 'info', title: 'Pinpoint', message: 'Pinpoint will ask permission to run on this site. Choose \u201cAllow on this site\u201d.' })
   }
   let sent = false
-  const post = async body => { sent = true; await C.rest('/result', { method: 'POST', body: { request_id: id, ...body } }) }
+  const post = async body => { sent = true; await C.rest('/result', { method: 'POST', body: { request_id: id, claim_token: claimToken, ...body } }) }
   try {
     const r = await performAudit({ source: 'agent', args: p.args, deliver: res => post({ ok: true, result: res }) })
     if (!r.ok && !sent) await post({ ok: false, code: r.code, message: r.message })
