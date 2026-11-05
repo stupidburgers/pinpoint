@@ -1,0 +1,35 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>tap</title>
+<style>
+body{margin:0;height:500px}
+.t{position:absolute;padding:0;border:0;margin:0;box-sizing:border-box;background:#ccc;display:block}
+</style></head><body>
+<button id="bad-1" class="t" style="left:20px;top:20px;width:18px;height:18px"></button>
+<button id="bad-2" class="t" style="left:43px;top:20px;width:18px;height:18px"></button>
+
+<input id="bad-3" type="checkbox" class="t" style="left:200px;top:20px;width:14px;height:14px">
+<button id="ok-1" class="t" style="left:215px;top:20px;width:44px;height:44px"></button>
+
+<div id="bad-4" role="button" tabindex="0" class="t" style="left:350px;top:20px;width:22px;height:22px"></div>
+<a id="bad-5" href="#x" class="t" style="left:372px;top:20px;width:20px;height:30px"></a>
+
+<select id="bad-6" class="t" style="left:500px;top:20px;width:80px;height:20px"><option>a</option></select>
+<button id="ok-2" class="t" style="left:500px;top:41px;width:44px;height:44px"></button>
+
+<div id="bad-7" tabindex="0" class="t" style="left:20px;top:150px;width:20px;height:20px"></div>
+<a id="bad-8" href="#y" class="t" style="left:42px;top:150px;width:20px;height:20px"></a>
+
+<div id="ok-3" role="button" tabindex="0" class="t" style="left:200px;top:150px;width:22px;height:22px"></div>
+<input id="ok-4" type="hidden" value="x">
+<input id="ok-5" type="checkbox" class="t" style="left:350px;top:150px;width:1px;height:1px;opacity:0">
+<button id="ok-6" disabled class="t" style="left:500px;top:150px;width:18px;height:18px"></button>
+<button id="ok-7" class="t" style="left:520px;top:150px;width:18px;height:18px"></button>
+
+<p style="position:absolute;left:20px;top:250px;width:300px;margin:0;font:16px Arial">Read the <a id="ok-8" href="#z">terms of service</a> now please.</p>
+<a id="ok-9" class="t" style="left:400px;top:250px;width:10px;height:10px"></a>
+<div id="ok-10" tabindex="-1" class="t" style="left:411px;top:250px;width:10px;height:10px"></div>
+
+<button id="low-1" class="t" style="left:20px;top:350px;width:30px;height:30px"></button>
+<button id="low-2" class="t" style="left:200px;top:350px;width:24px;height:24px"></button>
+<button id="ok-11" class="t" style="left:350px;top:350px;width:44px;height:44px"></button>
+<button id="ok-12" class="t" style="left:500px;top:350px;width:48px;height:48px"></button>
+</body></html>

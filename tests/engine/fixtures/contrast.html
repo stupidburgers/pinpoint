@@ -1,0 +1,39 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>contrast</title>
+<style>
+body{margin:0;padding:8px;font:16px/1.4 Arial,sans-serif;color:#000;background:#fff}
+p{margin:4px 0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+</style></head><body>
+<p id="bad-1" style="color:#aaa">light grey on white</p>
+<p id="ok-1" style="color:#555">dark grey on white</p>
+<p id="bad-2" style="color:rgba(0,0,0,.3)">alpha text</p>
+<p id="ok-2" style="color:rgba(0,0,0,.8)">alpha text ok</p>
+<div style="opacity:.4"><p id="bad-3" style="color:#333">inside faded ancestor</p></div>
+<div style="opacity:.9"><p id="ok-3" style="color:#222">inside barely faded ancestor</p></div>
+<div style="background:rgba(0,0,0,.5)"><div style="background:rgba(255,255,255,.5)"><p id="ok-4" style="color:#000">translucent stack</p><p id="bad-4" style="color:#777">translucent stack low</p></div></div>
+<div style="background:#111;color:#eee"><p id="ok-5">light on dark</p><p id="bad-5" style="color:#333">dark on dark</p></div>
+<p id="ok-6" style="font-size:24px;color:#8a8a8a">large text 3.45</p>
+<p id="bad-6" style="font-size:16px;color:#8a8a8a">small text 3.45</p>
+<p id="ok-7" style="font-size:19px;font-weight:700;color:#8a8a8a">bold large 3.45</p>
+<p id="bad-7" style="font-size:18px;font-weight:700;color:#8a8a8a">bold 18px not large</p>
+<p id="bad-8" style="color:#888">medium severity 3.54</p>
+<div style="background:linear-gradient(#fff,#ccc)"><p id="ok-grad" style="color:#bbb">gradient background is never guessed</p></div>
+<div style="background-image:url(data:image/gif;base64,R0lGODlhAQABAAAAACw=);background-color:#fff"><p id="ok-img" style="color:#bbb">image background</p></div>
+<button id="ok-dis" disabled style="color:#ccc;background:#fff;border:0">disabled button</button>
+<a id="ok-dis2" aria-disabled="true" style="color:#ccc">aria-disabled link</a>
+<p id="ok-disp" style="display:none;color:#fff">display none</p>
+<p id="ok-vis" style="visibility:hidden;color:#fff">visibility hidden</p>
+<p id="ok-transp" style="color:transparent">transparent text</p>
+<p id="ok-op0" style="opacity:0;color:#eee">opacity zero</p>
+<p id="ok-fs0" style="font-size:0;color:#eee">font size zero</p>
+<p id="ok-off" style="position:absolute;left:-9999px;color:#eee">offscreen left</p>
+<p id="ok-sr" class="sr" style="color:#eee">screen reader only</p>
+<p id="ok-indent" style="color:#eee;text-indent:-9999px;overflow:hidden;width:100px">indent hidden</p>
+<div style="position:relative;height:50px;margin:6px 0"><div style="position:absolute;left:0;top:0;right:0;bottom:0;background:#000"></div><p id="ok-over" style="position:relative;color:#333;margin:0">text over a positioned layer</p></div>
+<p>Plain <a id="bad-9" href="#" style="color:#9cf">pale link</a> inside text.</p>
+<p><span id="bad-10" style="background:#fff;color:#bbb">span with own bg</span></p>
+<p id="bad-11" style="color:oklch(0.85 0 0)">oklch light grey</p>
+<p id="ok-8" style="color:color-mix(in srgb, black 80%, white)">color-mix dark</p>
+<p id="aaa-1" style="color:#666">AA pass, AAA fail 5.74</p>
+<div style="overflow:hidden;height:20px;width:200px"><p id="ok-clip" style="margin:40px 0 0;color:#eee">clipped away</p></div>
+</body></html>

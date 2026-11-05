@@ -1,0 +1,28 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>form</title></head><body>
+<form>
+<input id="bad-1" type="text">
+<input id="bad-2" type="email" placeholder="Email">
+<select id="bad-3"><option>a</option></select>
+<textarea id="bad-4"></textarea>
+<label for="other">Name</label><input id="bad-5" type="text">
+<input id="bad-6" type="text" aria-labelledby="ghost">
+<input id="bad-7" type="text" aria-label="   ">
+<input id="bad-8" type="checkbox">
+<label><input id="bad-9" type="radio"></label>
+<input id="bad-10" type="search">
+<label for="ok-1">Email address</label><input id="ok-1" type="email">
+<label>Full name <input id="ok-2" type="text"></label>
+<input id="ok-3" type="text" aria-label="Search">
+<span id="lab4">Phone</span><input id="ok-4" type="tel" aria-labelledby="lab4">
+<input id="ok-5" type="text" title="Zip code">
+<input id="ok-6" type="hidden" name="csrf">
+<input id="ok-7" type="submit" value="Send">
+<input id="ok-8" type="button" value="Go">
+<input id="ok-9" type="text" style="display:none">
+<input id="ok-10" type="text" aria-hidden="true">
+<label>Country <select id="ok-11"><option>BR</option></select></label>
+<input id="ok-12" type="reset">
+<label for="ok-13"><span>Comments</span></label><textarea id="ok-13"></textarea>
+<label for="ok-14"><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="Age"></label><input id="ok-14" type="number">
+</form>
+</body></html>

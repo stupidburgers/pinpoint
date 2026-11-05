@@ -295,11 +295,596 @@ function pinpointEngine(config) {
 
   //@@UTIL
 
+  // ===== rules 1-5 =====
+  function fmt2(n) { return Math.round(n * 100) / 100; }
+  function canvasFor(el) {
+    var d = el.ownerDocument, cs = d.defaultView.getComputedStyle(d.documentElement), sch = cs.colorScheme || '';
+    var dark = /\bdark\b/.test(sch) && (!/\blight\b/.test(sch) || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches));
+    return dark ? { r: 18, g: 18, b: 18, a: 1 } : { r: 255, g: 255, b: 255, a: 1 };
+  }
+  function nodeBg(n) {
+    var m = X.nb && X.nb.get(n);
+    if (m) return m;
+    X.nb = X.nb || new Map();
+    var cs = gcs(n), bg = parseColor(cs.backgroundColor) || { r: 0, g: 0, b: 0, a: 0 };
+    m = { bg: bg, img: cs.backgroundImage !== 'none' && cs.backgroundImage !== '', op: parseFloat(cs.opacity), pos: cs.position !== 'static' };
+    if (isNaN(m.op)) m.op = 1;
+    X.nb.set(n, m);
+    return m;
+  }
+  function pseudoLayer(n) {
+    var m = X.pl && X.pl.get(n);
+    if (m !== undefined) return m;
+    X.pl = X.pl || new Map();
+    m = false;
+    if (nodeBg(n).pos) {
+      ['::before', '::after'].forEach(function (ps) {
+        var c = n.ownerDocument.defaultView.getComputedStyle(n, ps);
+        if (c.content === 'none' || c.content === 'normal' || c.display === 'none') return;
+        if (c.position !== 'absolute' && c.position !== 'fixed') return;
+        if (c.backgroundImage !== 'none' || (parseColor(c.backgroundColor) || { a: 0 }).a > 0.01) m = true;
+      });
+    }
+    X.pl.set(n, m);
+    return m;
+  }
+  // composite `start` (top layer) down through the ancestor chain; opacity applies to the group so far
+  function composite(el, start) {
+    var acc = start, n = el, unknown = false;
+    while (n) {
+      var nb = nodeBg(n);
+      if (acc.a < 0.99 && (nb.img || pseudoLayer(n))) { unknown = true; break; }
+      if (nb.bg.a > 0) acc = over(acc, nb.bg);
+      if (nb.op < 1) acc = { r: acc.r, g: acc.g, b: acc.b, a: acc.a * nb.op };
+      if (acc.a >= 0.99 && lay(n).op >= 0.999) { acc = { r: acc.r, g: acc.g, b: acc.b, a: 1 }; break; }
+      n = parentEl(n);
+    }
+    if (unknown) return null;
+    return rnd(over(acc, canvasFor(el)));
+  }
+  var MEDIA_TAGS = { img: 1, video: 1, canvas: 1, svg: 1, picture: 1, iframe: 1, object: 1, embed: 1 };
+  function layerCandidates() {
+    if (X.cands) return X.cands;
+    var out = [];
+    X.els.forEach(function (e) {
+      var cs = gcs(e);
+      if (cs.position === 'static' && cs.transform === 'none') return;
+      var nb = nodeBg(e);
+      if (!(MEDIA_TAGS[e.localName] || nb.img || nb.bg.a > 0.01)) return;
+      if (!vis(e)) return;
+      out.push({ el: e, box: rectOf(e) });
+    });
+    X.cands = out;
+    return out;
+  }
+  var NOTEXT = { option: 1, optgroup: 1, textarea: 1, select: 1, input: 1 };
+
+  function ruleContrast() {
+    var skipN = 0;
+    X.els.forEach(function (el) {
+      if (NOTEXT[el.localName]) return;
+      var ti = textInfo(el);
+      if (!ti || !textVisible(el, ti)) return;
+      if (isDisabled(el)) return;
+      var cs = gcs(el), fg = parseColor(cs.webkitTextFillColor) || parseColor(cs.color);
+      if (!fg || fg.a < 0.02) return;
+      X.checked['a11y.contrast']++;
+      var L = lay(el);
+      if (L.blend) { skip('a11y.contrast', 'blend'); skipN++; return; }
+      var cands = layerCandidates(), over_ = false;
+      for (var i = 0; i < cands.length && !over_; i++) {
+        var c = cands[i];
+        if (c.el === el || c.el.contains(el)) continue;
+        if (overlapArea(c.box, ti.box) > 0) over_ = true;
+      }
+      if (over_) { skip('a11y.contrast', 'overlap'); skipN++; return; }
+      var bgv = composite(el, { r: 0, g: 0, b: 0, a: 0 }), fgv = composite(el, fg);
+      if (!bgv || !fgv) { skip('a11y.contrast', 'image'); skipN++; return; }
+      var px = parseFloat(cs.fontSize) || 16, w = parseInt(cs.fontWeight, 10) || 400;
+      var large = px >= 24 || (px >= 18.66 && w >= 700);
+      var need = X.aaa ? (large ? 4.5 : 7) : (large ? 3 : 4.5), r = ratio(fgv, bgv);
+      if (r >= need) return;
+      var sg = suggestFix(fgv, bgv, need), why = (fg.a < 1 || L.op < 1) ? ' (effective colour; text is semi-transparent)' : '';
+      add('a11y.contrast', el, r < 3 ? 'high' : 'medium', {
+        wcag: X.aaa ? '1.4.6' : '1.4.3',
+        note: 'Contrast ' + fmt2(r) + ':1, needs ' + need + ':1' + why,
+        fix: sg.reachable ? (sg.dir === 'darker' ? 'Darken' : 'Lighten') + ' text to ' + sg.hex + ' or ' + sg.dir + ' (on ' + hex(bgv) + ')'
+          : 'No text colour reaches ' + need + ':1 on ' + hex(bgv) + '; change the background',
+        measured: { ratio: fmt2(r), need: need, fg: hex(fgv), bg: hex(bgv), px: Math.round(px * 10) / 10 }
+      });
+    });
+    if (skipN) limit('contrast: ' + skipN + ' text element(s) skipped (background image/gradient, overlapping layer or blend mode); never guessed');
+  }
+
+  // ----- tap targets -----
+  function isTarget(el) {
+    var t = el.localName;
+    if (t === 'a') return el.hasAttribute('href');
+    if (t === 'button' || t === 'select' || t === 'textarea' || t === 'summary') return true;
+    if (t === 'input') return (el.getAttribute('type') || '').toLowerCase() !== 'hidden';
+    var r = el.getAttribute('role');
+    if (r && /^(button|link|checkbox|tab|menuitem)$/.test(r.trim().split(/\s+/)[0].toLowerCase())) return true;
+    var ti = el.getAttribute('tabindex');
+    return ti !== null && parseInt(ti, 10) >= 0;
+  }
+  function inlineInText(el) {
+    if (gcs(el).display !== 'inline') return false;
+    var p = el.parentNode;
+    if (!p) return false;
+    for (var c = p.firstChild; c; c = c.nextSibling) if (c.nodeType === 3 && /\S/.test(c.nodeValue)) return true;
+    return false;
+  }
+  function targets() {
+    if (X.tg) return X.tg;
+    var out = [];
+    X.els.forEach(function (el) {
+      if (!isTarget(el) || isDisabled(el) || !vis(el)) return;
+      var r = rectOf(el);
+      if (r.w <= 1 && r.h <= 1) return;
+      out.push({ el: el, r: r, inl: inlineInText(el) });
+    });
+    X.tg = out;
+    return out;
+  }
+  function rectDist(px, py, r) {
+    var dx = Math.max(r.x - px, 0, px - (r.x + r.w)), dy = Math.max(r.y - py, 0, py - (r.y + r.h));
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+  function ruleTap() {
+    var T = targets(), min = X.tapMin, adv = X.tapAdv, grid = {}, CELL = 64;
+    function cells(r, pad, fn) {
+      for (var cx_ = Math.floor((r.x - pad) / CELL); cx_ <= Math.floor((r.x + r.w + pad) / CELL); cx_++)
+        for (var cy_ = Math.floor((r.y - pad) / CELL); cy_ <= Math.floor((r.y + r.h + pad) / CELL); cy_++) fn(cx_ + ',' + cy_);
+    }
+    T.forEach(function (t, i) {
+      t.small = Math.round(Math.min(t.r.w, t.r.h) * 100) / 100 < min;
+      t.cx = t.r.x + t.r.w / 2; t.cy = t.r.y + t.r.h / 2;
+      cells(t.r, 24, function (k) { (grid[k] = grid[k] || []).push(i); });
+    });
+    T.forEach(function (t, i) {
+      X.checked['a11y.tap-target']++;
+      var m = Math.round(Math.min(t.r.w, t.r.h) * 100) / 100;
+      if (t.inl) return;
+      var w = Math.round(t.r.w), h = Math.round(t.r.h);
+      if (t.small) {
+        var near = grid[Math.floor(t.cx / CELL) + ',' + Math.floor(t.cy / CELL)] || [], crowded = false;
+        for (var k = 0; k < near.length && !crowded; k++) {
+          var u = T[near[k]];
+          if (u === t || u.el.contains(t.el) || t.el.contains(u.el)) continue;
+          if (rectDist(t.cx, t.cy, u.r) < 12) crowded = true;
+          else if (u.small && Math.hypot(t.cx - u.cx, t.cy - u.cy) < 24) crowded = true;
+        }
+        if (!crowded) return;
+        add('a11y.tap-target', t.el, 'medium', {
+          wcag: '2.5.8', note: 'Target is ' + w + '\u00d7' + h + 'px; minimum is ' + min + '\u00d7' + min + 'px and neighbours are too close',
+          fix: 'Make it at least ' + min + '\u00d7' + min + 'px (44\u00d744 recommended) or keep other targets 24px away', measured: { w: w, h: h, min: min }
+        });
+      } else if (adv > 0 && m < adv) {
+        add('a11y.tap-target', t.el, 'low', {
+          wcag: '2.5.5', note: 'Target is ' + w + '\u00d7' + h + 'px; ' + adv + '\u00d7' + adv + 'px is the recommended size',
+          fix: 'Enlarge the clickable area to ' + adv + '\u00d7' + adv + 'px (padding is enough)', measured: { w: w, h: h, min: adv }
+        });
+      }
+    });
+  }
+
+  // ----- images -----
+  var FILE_ALT = [/\.(png|jpe?g|gif|svg|webp)$/i, /^img[_-]?\d+/i];
+  function ruleImgAlt() {
+    X.els.forEach(function (el) {
+      var t = el.localName, role = (el.getAttribute('role') || '').trim().split(/\s+/)[0].toLowerCase(), kind = '';
+      if (t === 'img') kind = 'img';
+      else if (t === 'input' && (el.getAttribute('type') || '').toLowerCase() === 'image') kind = 'input';
+      else if (role === 'img') kind = 'role';
+      if (!kind || !inTree(el)) return;
+      var rc = rectOf(el);
+      if (kind === 'img' && rc.w <= 1 && rc.h <= 1) return;
+      X.checked['a11y.img-alt']++;
+      var named = attrName(el) || (el.getAttribute('title') || '').trim();
+      if (kind === 'role' && !named && t === 'svg') { var ti = el.querySelector('title'); named = ti ? ti.textContent.trim() : ''; }
+      var alt = el.getAttribute('alt'), msg = '';
+      if (kind === 'img') {
+        if (role === 'presentation' || role === 'none') return;
+        if (alt === null) { if (named) return; msg = 'Image has no alt attribute'; }
+        else if (!/\S/.test(alt)) { if (!role || named) return; msg = 'Empty alt but role="' + clip(sanitize(role), 20) + '" needs a name'; }
+        else if (FILE_ALT[0].test(alt.trim()) || FILE_ALT[1].test(alt.trim())) msg = 'Alt text looks like a file name';
+        else return;
+      } else if (kind === 'input') {
+        if ((alt && /\S/.test(alt)) || named) return;
+        msg = 'Image button has no accessible name';
+      } else {
+        if (named) return;
+        msg = 'role="img" has no accessible name';
+      }
+      add('a11y.img-alt', el, 'high', { wcag: '1.1.1', note: msg, fix: 'Add alt text that describes the image purpose, or alt="" if purely decorative', measured: { w: Math.round(rc.w), h: Math.round(rc.h) } });
+    });
+  }
+
+  // ----- form controls -----
+  var NOLABEL = { hidden: 1, submit: 1, button: 1, reset: 1, image: 1 };
+  function labelText(el) {
+    var out = '', ls = el.labels;
+    if (ls) for (var i = 0; i < ls.length; i++) out += ' ' + contentName(ls[i], true, true);
+    return out.trim();
+  }
+  function ruleFormLabel() {
+    X.els.forEach(function (el) {
+      var t = el.localName;
+      if (!(t === 'input' || t === 'select' || t === 'textarea')) return;
+      if (t === 'input' && NOLABEL[(el.getAttribute('type') || 'text').toLowerCase()]) return;
+      if (!inTree(el)) return;
+      X.checked['a11y.form-label']++;
+      if (attrName(el) || labelText(el) || (el.getAttribute('title') || '').trim()) return;
+      var ph = /\S/.test(el.getAttribute('placeholder') || '');
+      add('a11y.form-label', el, 'high', {
+        wcag: '1.3.1',
+        note: ph ? 'Field has only a placeholder; a placeholder is not a label' : 'Form field has no accessible name',
+        fix: 'Add a visible <label for> (or aria-label) that names the field', measured: { placeholder: ph ? 1 : 0 }
+      });
+    });
+  }
+
+  // ----- control names -----
+  var NAMED_ROLES = /^(button|link|tab|menuitem)$/;
+  function ruleControlName() {
+    X.els.forEach(function (el) {
+      var t = el.localName, r = (el.getAttribute('role') || '').trim().split(/\s+/)[0].toLowerCase();
+      if (!(t === 'button' || (t === 'a' && el.hasAttribute('href')) || NAMED_ROLES.test(r))) return;
+      if (!inTree(el)) return;
+      X.checked['a11y.control-name']++;
+      if (attrName(el) || contentName(el, false, false) || (el.getAttribute('title') || '').trim()) return;
+      add('a11y.control-name', el, 'high', {
+        wcag: '4.1.2', note: (t === 'a' ? 'Link' : 'Control') + ' has no accessible name (icon-only?)',
+        fix: 'Add aria-label or visible text that says what it does', measured: {}
+      });
+    });
+  }
+
   //@@RULES
 
-  function audit() {
-    return { protocol: PROTOCOL, findings: [], errors: [], score: 100, counts: { high: 0, medium: 0, low: 0 } };
+  // ===== audit context & geometry helpers =====
+  var X = null;
+  function gcs(el) {
+    var c = X.cs.get(el);
+    if (!c) { c = el.ownerDocument.defaultView.getComputedStyle(el); X.cs.set(el, c); }
+    return c;
   }
+  function parentEl(el) { return el.parentElement || hostOf(el); }
+  function frameOff(w) {
+    if (w === window) return { x: 0, y: 0 };
+    var o = X.fo.get(w);
+    if (!o) {
+      o = { x: 0, y: 0 };
+      try {
+        var fe = w.frameElement, b = fe.getBoundingClientRect(), p = frameOff(fe.ownerDocument.defaultView);
+        o = { x: b.left + fe.clientLeft + p.x, y: b.top + fe.clientTop + p.y };
+      } catch (e) {}
+      X.fo.set(w, o);
+    }
+    return o;
+  }
+  function toPage(b, el) {
+    var o = frameOff(el.ownerDocument.defaultView);
+    return { x: b.left + o.x + X.sx, y: b.top + o.y + X.sy, w: b.width, h: b.height };
+  }
+  function rectOf(el) {
+    var r = X.rc.get(el);
+    if (!r) { r = toPage(el.getBoundingClientRect(), el); X.rc.set(el, r); }
+    return r;
+  }
+  function overlapArea(a, b) {
+    var w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x), h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+    return w > 0 && h > 0 ? w * h : 0;
+  }
+  var NOCLIP = /^rect\(\s*0(px)?[ ,]+0(px)?[ ,]+0(px)?[ ,]+0(px)?\s*\)$/;
+  // per-node layer info: cumulative opacity, clip region, hidden/blend flags
+  function lay(el) {
+    var m = X.ly.get(el);
+    if (m) return m;
+    var cs = gcs(el), p = parentEl(el), pm = p ? lay(p) : { op: 1, clip: null, hide: false, blend: false };
+    var op = pm.op * (parseFloat(cs.opacity) || 0), clipR = pm.clip, hide = pm.hide;
+    var tag = el.localName;
+    if (tag !== 'html' && tag !== 'body') {
+      var ox = cs.overflowX, oy = cs.overflowY, cx_ = ox === 'hidden' || ox === 'clip', cy_ = oy === 'hidden' || oy === 'clip';
+      if (cx_ || cy_) {
+        var r = rectOf(el), reg = { x: cx_ ? r.x : -1e9, y: cy_ ? r.y : -1e9, w: cx_ ? r.w : 2e9, h: cy_ ? r.h : 2e9 };
+        if ((cx_ && r.w < 2) || (cy_ && r.h < 2)) hide = true;
+        if (clipR) {
+          var x0 = Math.max(clipR.x, reg.x), y0 = Math.max(clipR.y, reg.y);
+          reg = { x: x0, y: y0, w: Math.min(clipR.x + clipR.w, reg.x + reg.w) - x0, h: Math.min(clipR.y + clipR.h, reg.y + reg.h) - y0 };
+        }
+        clipR = reg;
+      }
+    }
+    if (cs.clip && cs.clip !== 'auto' && NOCLIP.test(cs.clip)) hide = true;
+    if (/^inset\(\s*(50|100)%/.test(cs.clipPath || '')) hide = true;
+    var blend = pm.blend || (cs.mixBlendMode && cs.mixBlendMode !== 'normal') || (cs.filter && cs.filter !== 'none') ||
+      ((cs.backdropFilter || cs.webkitBackdropFilter || 'none') !== 'none');
+    m = { op: op, clip: clipR, hide: hide, blend: !!blend };
+    X.ly.set(el, m);
+    return m;
+  }
+  // visually rendered and perceivable
+  function vis(el) {
+    var v = X.vs.get(el);
+    if (v !== undefined) return v;
+    v = false;
+    var cs = gcs(el);
+    if (cs.visibility === 'visible' && el.getClientRects().length > 0) {
+      var L = lay(el), r = rectOf(el);
+      v = L.op >= 0.01 && !L.hide && r.w > 0 && r.h > 0 && r.x + r.w > 0 && r.y + r.h > 0 && (!L.clip || overlapArea(L.clip, r) > 0);
+    }
+    X.vs.set(el, v);
+    return v;
+  }
+  // present in the accessibility tree (display/visibility only)
+  function inTree(el) {
+    return gcs(el).visibility !== 'hidden' && el.getClientRects().length > 0 && !el.closest('[aria-hidden="true"]');
+  }
+  function isDisabled(el) { return !!el.closest('[disabled],[aria-disabled="true"],:disabled'); }
+  var ranges = [];
+  function rangeFor(el) {
+    var d = el.ownerDocument;
+    for (var i = 0; i < ranges.length; i++) if (ranges[i][0] === d) return ranges[i][1];
+    var r = d.createRange(); ranges.push([d, r]);
+    return r;
+  }
+  // own non-blank text nodes: union box (page coords), distinct line count, char count
+  function textInfo(el) {
+    var t = X.tx.get(el);
+    if (t !== undefined) return t;
+    t = null;
+    var rg = null, x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, tops = {}, lines = 0, chars = 0;
+    for (var c = el.firstChild; c; c = c.nextSibling) {
+      if (c.nodeType !== 3 || !/\S/.test(c.nodeValue)) continue;
+      chars += c.nodeValue.replace(/\s/g, '').length;
+      rg = rg || rangeFor(el);
+      rg.selectNodeContents(c);
+      var rs = rg.getClientRects();
+      for (var i = 0; i < rs.length; i++) {
+        var b = toPage(rs[i], el);
+        if (b.w <= 0 || b.h <= 0) continue;
+        x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + b.w); y1 = Math.max(y1, b.y + b.h);
+        var k = Math.round(b.y / 3);
+        if (!tops[k]) { tops[k] = 1; lines++; }
+      }
+    }
+    if (chars && x1 > x0) t = { box: { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }, lines: lines, chars: chars };
+    X.tx.set(el, t);
+    return t;
+  }
+  function textVisible(el, ti) {
+    if (!ti) return false;
+    var cs = gcs(el);
+    if (cs.visibility !== 'visible') return false;
+    var L = lay(el), b = ti.box;
+    if (L.op < 0.01 || L.hide || b.x + b.w <= 0 || b.y + b.h <= 0) return false;
+    return !L.clip || overlapArea(L.clip, b) > 0;
+  }
+
+  // ===== name computation =====
+  function pseudoText(el) {
+    var out = '';
+    ['::before', '::after'].forEach(function (ps) {
+      var c = el.ownerDocument.defaultView.getComputedStyle(el, ps).content;
+      if (!c || c === 'none' || c === 'normal') return;
+      var m = /^(["'])([\s\S]*)\1$/.exec(c);
+      if (!m) return;
+      var s = m[2].replace(/\\([0-9a-f]{1,6}) ?/gi, function (a, h) { try { return String.fromCodePoint(parseInt(h, 16)); } catch (e) { return ''; } });
+      s = s.replace(/[\ue000-\uf8ff]/g, '');
+      out += s;
+    });
+    return out;
+  }
+  function contentName(el, hidden, skipControls) {
+    var out = '';
+    (function walk(n, d) {
+      if (d > 8) return;
+      for (var c = n.firstChild; c; c = c.nextSibling) {
+        if (c.nodeType === 3) { out += c.nodeValue + ' '; continue; }
+        if (c.nodeType !== 1 || c.hasAttribute('data-pp-root')) continue;
+        var tag = c.localName;
+        if (tag === 'script' || tag === 'style' || tag === 'template' || tag === 'noscript') continue;
+        if (skipControls && (tag === 'select' || tag === 'textarea' || tag === 'input' || tag === 'button')) continue;
+        if (!hidden && (c.getAttribute('aria-hidden') === 'true' || gcs(c).display === 'none')) continue;
+        var al = c.getAttribute('aria-label');
+        if (al && /\S/.test(al)) { out += al + ' '; continue; }
+        if (tag === 'img' || (tag === 'input' && c.getAttribute('type') === 'image')) { out += (c.getAttribute('alt') || c.getAttribute('title') || '') + ' '; continue; }
+        if (tag === 'svg') {
+          var ti = c.querySelector('title');
+          out += (ti ? ti.textContent : c.getAttribute('title') || '') + ' ';
+          continue;
+        }
+        if (!hidden) out += pseudoText(c);
+        walk(c, d + 1);
+      }
+    })(el, 0);
+    if (!hidden) out += pseudoText(el);
+    return out.replace(/\s+/g, ' ').trim();
+  }
+  function refText(el, attr) {
+    var ids = (el.getAttribute(attr) || '').split(/\s+/).filter(Boolean), rt = rootOf(el), out = '';
+    ids.forEach(function (id) {
+      var t = (rt.getElementById ? rt.getElementById(id) : null) || el.ownerDocument.getElementById(id);
+      if (t) out += ' ' + (t.getAttribute('aria-label') || contentName(t, true, false));
+    });
+    return out.trim();
+  }
+  function attrName(el) {
+    var v = refText(el, 'aria-labelledby');
+    if (v) return v;
+    v = el.getAttribute('aria-label');
+    return v && /\S/.test(v) ? v.trim() : '';
+  }
+
+  // ===== finding collection =====
+  var RULE_META = {};
+  function add(rule, el, sev, o) {
+    o = o || {};
+    X.raw.push({ rule: rule, el: el, sev: sev, o: o, order: X.idx.get(el) == null ? 1e9 : X.idx.get(el) });
+  }
+  function skip(rule, why) {
+    var s = X.skipped[rule] || (X.skipped[rule] = {});
+    s[why] = (s[why] || 0) + 1;
+  }
+  function limit(s) { if (X.limits.indexOf(s) < 0) X.limits.push(s); }
+
+  function collect() {
+    var all = [], xframes = 0, maybeClosed = 0;
+    function walkRoot(rt, depth) {
+      var tw = doc.createTreeWalker(rt, 1, {
+        acceptNode: function (n) {
+          if (SKIP_TAGS[n.nodeName] && n.nodeName !== 'HEAD') return 2;
+          if (n.nodeName === 'HEAD') return 2;
+          if (!X.opts._overlay && n.hasAttribute('data-pp-root')) return 2;
+          if (n.namespaceURI === 'http://www.w3.org/2000/svg' && n.localName !== 'svg') return 2;
+          return 1;
+        }
+      });
+      for (var n = tw.nextNode(); n; n = tw.nextNode()) {
+        all.push(n);
+        if (n.shadowRoot) walkRoot(n.shadowRoot, depth);
+        else if (n.localName.indexOf('-') > 0 && n.childNodes.length === 0 && window.customElements && customElements.get(n.localName)) maybeClosed++;
+        if (n.localName === 'iframe' || n.localName === 'frame') {
+          var cd = null;
+          try { cd = n.contentDocument; } catch (e) {}
+          if (cd && cd.documentElement && depth < 2) walkRoot(cd, depth + 1);
+          else if (!cd || depth >= 2) xframes++;
+        }
+      }
+    }
+    walkRoot(doc, 0);
+    if (xframes) limit('iframes not scanned (cross-origin or deeper than 2): ' + xframes);
+    if (maybeClosed) limit('possible closed shadow roots not scanned: ' + maybeClosed);
+    return all;
+  }
+
+  var SEV_RANK = { high: 0, medium: 1, low: 2 };
+  var SEV_W = { high: 8, medium: 4, low: 1 };
+  var RULES = [];
+
+  function describe(el) {
+    var s = el.localName, cl = stableClasses(el)[0];
+    if (cl) s += '.' + cl;
+    var t = sanitize(textOf(el, 60));
+    if (el.localName === 'html' || el.localName === 'body') t = '';
+    if (t) {
+      var room = 40 - s.length - 3;
+      if (room > 1) s += " '" + (t.length > room ? t.slice(0, room - 1) + '\u2026' : t) + "'";
+    }
+    return clip(sanitize(s), 40);
+  }
+  function anchorOf(el) {
+    var tx = textOf(el, 80);
+    if (el.localName === 'html' || el.localName === 'body') tx = '';
+    return {
+      tag: el.localName, role: roleOf(el), name: clip(sanitize(el.getAttribute('aria-label') || tx || el.getAttribute('alt') || ''), 40),
+      textHash: fnv1a(normText(tx)), ref: clip(sanitize(el.getAttribute('id') || ''), 80), path: clip(sanitize(ancestorPath(el)), 120),
+      nameAttr: clip(sanitize(el.getAttribute('name') || ''), 60)
+    };
+  }
+  function roundRect(r) { return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.w), h: Math.round(r.h) }; }
+
+  function audit(opts) {
+    var t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    opts = opts || {};
+    var res = {
+      protocol: PROTOCOL, url: clip(location.href, 300), key: urlKey(location.href), title: '', viewport: { w: 0, h: 0, dpr: 1 },
+      scroll: { w: 0, h: 0 }, t: now(), score: 100, counts: { high: 0, medium: 0, low: 0 }, byRule: {}, findings: [],
+      stats: { elements: 0, ms: 0, checked: {}, skipped: {} }, limits: [], errors: []
+    };
+    try {
+      res.title = clip(sanitize(doc.title), 80);
+      res.viewport = { w: root.clientWidth, h: root.clientHeight, dpr: window.devicePixelRatio || 1 };
+      res.scroll = { w: root.scrollWidth, h: root.scrollHeight };
+      X = {
+        opts: opts, cs: new Map(), fo: new Map(), rc: new Map(), ly: new Map(), vs: new Map(), tx: new Map(), idx: new Map(),
+        raw: [], skipped: {}, checked: {}, limits: [], sx: window.pageXOffset || 0, sy: window.pageYOffset || 0,
+        tapMin: opts.tapMin > 0 ? opts.tapMin : 24, tapAdv: opts.tapAdvisory === undefined ? 44 : opts.tapAdvisory,
+        aaa: opts.contrast === 'AAA', vw: root.clientWidth, vh: root.clientHeight
+      };
+      var all = collect();
+      all.forEach(function (e, i) { X.idx.set(e, i); });
+      X.all = all;
+      X.els = all;
+      res.stats.elements = all.length;
+      if (all.length > 5000) {
+        var lo = X.sy - 2 * X.vh, hi = X.sy + 3 * X.vh;
+        X.els = all.filter(function (e) { var r = rectOf(e); return r.y + r.h >= lo && r.y <= hi; });
+        limit('large page (' + all.length + ' elements): audited the viewport +- 2 screens only');
+      }
+      var want = Array.isArray(opts.rules) && opts.rules.length ? opts.rules : null;
+      if (want) want.forEach(function (r) { if (!RULE_META[r]) res.errors.push({ rule: String(r), message: 'unknown rule' }); });
+      RULES.forEach(function (rl) {
+        if (want && want.indexOf(rl.id) < 0) return;
+        X.checked[rl.id] = 0;
+        try { rl.fn(); } catch (e) { res.errors.push({ rule: rl.id, message: clip(sanitize(e && e.message), 120) }); }
+      });
+      finish(res, opts);
+    } catch (e) {
+      res.errors.push({ rule: 'engine', message: clip(sanitize(e && e.message), 120) });
+    }
+    res.stats.ms = Math.round(((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0) * 10) / 10;
+    if (X) { res.stats.checked = X.checked; res.stats.skipped = X.skipped; res.limits = X.limits.slice(); }
+    X = null;
+    dirty = false;
+    lastAudit = res;
+    return res;
+  }
+  var lastAudit = null, rankOf = {};
+
+  function finish(res, opts) {
+    var seen = {}, sup = {};
+    (opts.suppress || []).forEach(function (s) { sup[s] = 1; });
+    var items = [];
+    X.raw.forEach(function (r) {
+      var fp = fingerprint(r.rule, r.el, r.o.variant), n = seen[fp] = (seen[fp] || 0) + 1;
+      r.id = idFor(r.rule, r.el, r.o.variant, n > 1 ? n - 1 : 0);
+      if (!sup[r.id]) items.push(r);
+    });
+    items.sort(function (a, b) {
+      return SEV_RANK[a.sev] - SEV_RANK[b.sev] || a.order - b.order || (a.rule < b.rule ? -1 : a.rule > b.rule ? 1 : 0) || (a.id < b.id ? -1 : 1);
+    });
+    var perRule = {}, penalty = 0;
+    items.forEach(function (r) {
+      var n = perRule[r.rule] = (perRule[r.rule] || 0) + 1;
+      penalty += SEV_W[r.sev] * (n <= 5 ? 1 : 0.25);
+      res.counts[r.sev]++;
+    });
+    res.byRule = perRule;
+    res.score = Math.max(0, Math.min(100, Math.floor(100 - penalty + 0.5)));
+    var max = opts.maxFindings > 0 ? opts.maxFindings : 200, kept = items.slice(0, max);
+    if (items.length > kept.length) limit('findings truncated: showing ' + kept.length + ' of ' + items.length);
+    rankOf = {};
+    kept.forEach(function (r, i) {
+      var o = r.o, rc = o.rect || rectOf(o.anchorEl || r.el);
+      var f = {
+        id: r.id, rule: r.rule, sev: r.sev
+      };
+      if (o.wcag) f.wcag = o.wcag;
+      if (o.heuristic) f.heuristic = true;
+      f.confidence = o.confidence || 'high';
+      f.selector = clip(sanitize(selectorFor(r.el)), 200);
+      f.label = describe(r.el);
+      f.note = clip(sanitize(o.note), 200);
+      f.fix = clip(sanitize(o.fix), 200);
+      f.measured = o.measured || {};
+      f.rect = roundRect(rc);
+      f.anchor = anchorOf(r.el);
+      f.pin = i + 1;
+      rankOf[f.id] = i;
+      res.findings.push(f);
+    });
+  }
+
+  function register(id, fn, meta) { RULE_META[id] = meta || {}; RULES.push({ id: id, fn: fn }); }
+
+  register('a11y.contrast', ruleContrast, { sev: 'high' });
+  register('a11y.tap-target', ruleTap);
+  register('a11y.img-alt', ruleImgAlt);
+  register('a11y.form-label', ruleFormLabel);
+  register('a11y.control-name', ruleControlName);
+  //@@REGISTER-END
 
   var overlayHost = null;
   function pinCount() { return 0; }
