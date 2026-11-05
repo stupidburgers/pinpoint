@@ -311,3 +311,30 @@ def test_fuzz_hostile_desktop_payloads(tools, desk):
     desk.reply = lambda: (_ for _ in ()).throw(RuntimeError("kaboom"))
     r = json.loads(tools.audit_handler({}))
     assert r["ok"] is False and r["code"] == "engine_error"
+
+
+# --- inspect_selector -------------------------------------------------------------------------
+
+def test_inspect_selector_forwarded_and_result_sanitised(tools, desk):
+    ins = {"selector": "#hero", "tag": "h1", "label": "Hello\u202e\x00 world" * 20,
+           "typography": {"fontSize": "16px", "color": "#111"}, "findings": [{"id": "x"}],
+           "boxModel": {"padding": "8px"}, "evil": {"a": {"b": {"c": {"d": 1}}}}}
+    desk.reply = {"ok": True, "result": {**AR([F(1)]), "inspected": ins}}
+    r = call(tools, {"inspect_selector": "#hero"})
+    assert desk.calls[-1]["args"]["inspect_selector"] == "#hero"
+    got = r["inspected"]
+    assert got["tag"] == "h1" and got["typography"]["fontSize"] == "16px"
+    assert "findings" not in got and len(got["label"]) <= 80
+    assert "\u202e" not in got["label"] and "\x00" not in got["label"]
+
+
+def test_inspect_selector_no_match_is_explicit(tools, desk):
+    desk.reply = {"ok": True, "result": AR([F(1)])}
+    r = call(tools, {"inspect_selector": "#nope"})
+    assert r["inspected"] is None and "No element matched" in r["inspect_note"]
+
+
+@pytest.mark.parametrize("bad", ["", "   ", 5, "x" * 201])
+def test_inspect_selector_validation(tools, desk, bad):
+    out = json.loads(tools.audit_handler({"inspect_selector": bad}))
+    assert out["ok"] is False and out["code"] == "bad_args"

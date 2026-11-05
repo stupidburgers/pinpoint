@@ -66,7 +66,8 @@ def test_ack_exclusive_and_pending(client, core):
     p = client.get(P + "/pending").json()
     assert [x["request_id"] for x in p["pending"]] == ["r1"]
     r = client.post(P + "/ack/r1", json={"window": "A"})
-    assert r.status_code == 200 and r.json() == {"claimed": True}
+    assert r.status_code == 200 and r.json()["claimed"] is True and len(r.json()["claim_token"]) == 32
+    assert "claim_token" not in json.dumps(client.get(P + "/pending").json())
     r = client.post(P + "/ack/r1", json={"window": "B"})
     assert r.status_code == 409 and r.json() == {"claimed": False}
     assert client.get(P + "/pending").json()["pending"] == []
@@ -77,7 +78,8 @@ def test_result_roundtrip_files(client, core):
     import time
     d = core.rv_dir()
     (d / "r2.req.json").write_text(json.dumps({"request_id": "r2", "args": {}, "t": time.time()}))
-    body = {"request_id": "r2", "ok": True, "result": AR([1])}
+    tok = client.post(P + "/ack/r2", json={"window": "A"}).json()["claim_token"]
+    body = {"request_id": "r2", "claim_token": tok, "ok": True, "result": AR([1])}
     assert client.post(P + "/result", json=body).status_code == 200
     saved = json.loads((d / "r2.res.json").read_text("utf-8"))
     assert saved["ok"] is True and saved["result"]["score"] == 50
@@ -88,7 +90,8 @@ def test_result_error_form(client, core):
     import time
     d = core.rv_dir()
     (d / "r3.req.json").write_text(json.dumps({"request_id": "r3", "args": {}, "t": time.time()}))
-    r = client.post(P + "/result", json={"request_id": "r3", "ok": False, "code": "consent_denied", "message": "x"})
+    tok = client.post(P + "/ack/r3", json={}).json()["claim_token"]
+    r = client.post(P + "/result", json={"request_id": "r3", "claim_token": tok, "ok": False, "code": "consent_denied", "message": "x"})
     assert r.status_code == 200
     assert json.loads((d / "r3.res.json").read_text("utf-8"))["code"] == "consent_denied"
 
@@ -97,7 +100,8 @@ def test_result_large_300_findings(client, core):
     import time
     d = core.rv_dir()
     (d / "r4.req.json").write_text(json.dumps({"request_id": "r4", "args": {}, "t": time.time()}))
-    r = client.post(P + "/result", json={"request_id": "r4", "ok": True, "result": AR(range(300))})
+    tok = client.post(P + "/ack/r4", json={}).json()["claim_token"]
+    r = client.post(P + "/result", json={"request_id": "r4", "claim_token": tok, "ok": True, "result": AR(range(300))})
     assert r.status_code == 200
 
 
@@ -172,3 +176,43 @@ def test_python_modules_not_shared_state(client, core):
     core_req = core.rv_dir() / "r9.req.json"
     core_req.write_text(json.dumps({"request_id": "r9", "args": {}, "t": time.time()}))
     assert client.get(P + "/pending").json()["pending"][0]["request_id"] == "r9"
+
+
+def _req(core, rid):
+    import time
+    (core.rv_dir() / f"{rid}.req.json").write_text(json.dumps({"request_id": rid, "args": {}, "t": time.time()}))
+
+
+def test_result_requires_ack_and_matching_token_and_is_single_write(client, core):
+    _req(core, "h1")
+    ok = {"request_id": "h1", "ok": True, "result": AR([1])}
+    assert client.post(P + "/result", json=ok).status_code == 409                       # before ack
+    tok = client.post(P + "/ack/h1", json={"window": "A"}).json()["claim_token"]
+    assert client.post(P + "/result", json={**ok, "claim_token": "x" * 32}).status_code == 403   # wrong token
+    assert client.post(P + "/result", json=ok).status_code == 403                        # missing token
+    assert client.post(P + "/result", json={**ok, "claim_token": tok}).status_code == 200
+    again = {"request_id": "h1", "ok": False, "code": "engine_error", "message": "late", "claim_token": tok}
+    assert client.post(P + "/result", json=again).status_code == 409                     # duplicate completion
+    assert json.loads((core.rv_dir() / "h1.res.json").read_text("utf-8"))["ok"] is True
+
+
+def test_loser_window_cannot_complete(client, core):
+    _req(core, "h2")
+    client.post(P + "/ack/h2", json={"window": "A"})
+    assert client.post(P + "/ack/h2", json={"window": "B"}).status_code == 409
+    r = client.post(P + "/result", json={"request_id": "h2", "ok": True, "result": AR([1])})
+    assert r.status_code == 403 and not (core.rv_dir() / "h2.res.json").exists()
+
+
+def test_oversize_result_rejected_before_write(client, core):
+    _req(core, "h3")
+    tok = client.post(P + "/ack/h3", json={}).json()["claim_token"]
+    big = {"request_id": "h3", "claim_token": tok, "ok": True, "result": {"blob": "x" * (300 * 1024)}}
+    assert client.post(P + "/result", json=big).status_code == 413
+    assert not (core.rv_dir() / "h3.res.json").exists()
+
+
+def test_malformed_result_is_400(client, core):
+    _req(core, "h4")
+    r = client.post(P + "/result", content=b"{not json", headers={"content-type": "application/json"})
+    assert r.status_code == 400
