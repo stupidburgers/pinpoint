@@ -195,8 +195,11 @@ def test_round_trip_real_rendezvous(tools, core, host):
         while time.time() < end:
             p = core.pending()
             if p:
-                core.claim_ack(p[0]["request_id"], "w")
-                core.post_result(p[0]["request_id"], {"ok": True, "result": AR([F(1)])})
+                rid = p[0]["request_id"]
+                claim = core.claim_ack(rid, "w", p[0].get("session_id", ""))
+                core.post_result(rid, {"request_id": rid, "pv": core.PROTOCOL, "receipt": claim["receipt"],
+                                        "session_id": p[0].get("session_id", ""), "window": "w",
+                                        "ok": True, "result": AR([F(1)])})
                 return
             time.sleep(0.01)
 

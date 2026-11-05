@@ -4,12 +4,13 @@ Hermes loads this file standalone by path (no parent package), so the plugin pac
 under a private name from the parent directory. All shared state lives in files / SQLite.
 """
 import importlib.util
+import json
 import os
 import sys
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -42,14 +43,8 @@ router = APIRouter()
 
 class AckBody(BaseModel):
     window: str = ""
-
-
-class ResultBody(BaseModel):
-    request_id: str
-    ok: bool = True
-    result: Optional[Any] = None
-    code: Optional[str] = None
-    message: Optional[str] = None
+    session_id: str = ""
+    pv: Optional[int] = None
 
 
 class AuditBody(BaseModel):
@@ -62,6 +57,10 @@ class PinsBody(BaseModel):
     url_key: str
     ids: Optional[list] = None
     reason: Optional[str] = None
+
+
+# Rejected before any JSON parsing; a result body never trusts a declared Content-Length alone.
+_PROTOCOL_MISMATCH = {"ok": False, "code": "protocol_mismatch", "message": "unsupported protocol version"}
 
 
 @router.get("/health")
@@ -77,25 +76,88 @@ async def pending():
 
 
 @router.post("/ack/{request_id}")
-async def ack(request_id: str, body: Optional[AckBody] = None):
+async def ack(request_id: str, body: AckBody):
     core, _ = _mods()
-    if core.claim_ack(request_id, body.window if body else ""):
-        return {"claimed": True}
-    return JSONResponse({"claimed": False}, status_code=409)
+    if body.pv != core.PROTOCOL:
+        return JSONResponse({"claimed": False, "code": "protocol_mismatch",
+                              "message": "unsupported protocol version"}, status_code=400)
+    out = core.claim_ack(request_id, body.window, body.session_id)
+    if out.get("claimed"):
+        return {"claimed": True, "receipt": out["receipt"]}
+    reason = out.get("reason") or "unavailable"
+    if reason == "session_mismatch":
+        return JSONResponse({"claimed": False, "code": "session_mismatch"}, status_code=403)
+    if reason == "protocol":
+        return JSONResponse({"claimed": False, "code": "protocol_mismatch"}, status_code=400)
+    return JSONResponse({"claimed": False, "code": reason}, status_code=409)
 
 
 @router.post("/result")
-async def result(body: ResultBody):
+async def result(request: Request):
     core, _ = _mods()
-    payload = {"request_id": body.request_id, "ok": body.ok}
-    if body.ok:
-        payload["result"] = body.result if isinstance(body.result, dict) else {}
-    else:
-        payload["code"] = body.code or "engine_error"
-        payload["message"] = body.message or ""
-    if core.post_result(body.request_id, payload):
+
+    # Bounded ingress BEFORE any JSON parsing. A declared Content-Length is advisory only
+    # (never trusted as proof of actual size) and is checked first purely to short-circuit
+    # obviously oversized requests without reading their body.
+    declared = request.headers.get("content-length")
+    if declared is not None:
+        try:
+            if int(declared) > core.RESULT_MAX_BYTES:
+                return JSONResponse({"ok": False, "code": "oversize", "message": "payload too large"},
+                                     status_code=413)
+        except ValueError:
+            pass
+
+    body = bytearray()
+    async for chunk in request.stream():
+        body.extend(chunk)
+        if len(body) > core.RESULT_MAX_BYTES:
+            return JSONResponse({"ok": False, "code": "oversize", "message": "payload too large"},
+                                 status_code=413)
+
+    try:
+        text = bytes(body).decode("utf-8")
+    except UnicodeDecodeError:
+        return JSONResponse({"ok": False, "code": "bad_request", "message": "body is not valid UTF-8"},
+                             status_code=400)
+    try:
+        payload = json.loads(text)
+    except ValueError:
+        return JSONResponse({"ok": False, "code": "bad_request", "message": "malformed JSON"},
+                             status_code=400)
+    if not isinstance(payload, dict):
+        return JSONResponse({"ok": False, "code": "bad_request", "message": "body must be a JSON object"},
+                             status_code=400)
+
+    if payload.get("pv") != core.PROTOCOL:
+        return JSONResponse(_PROTOCOL_MISMATCH, status_code=400)
+
+    rid = payload.get("request_id")
+    if not isinstance(rid, str) or not rid:
+        return JSONResponse({"ok": False, "code": "bad_request", "message": "missing request_id"},
+                             status_code=400)
+
+    out = core.post_result(rid, payload)
+    if out.get("posted"):
         return {"ok": True}
-    return JSONResponse({"ok": False, "message": "unknown or expired request"}, status_code=404)
+    reason = out.get("reason") or "unknown"
+    if reason == "unknown":
+        return JSONResponse({"ok": False, "message": "unknown or expired request"}, status_code=404)
+    if reason == "no_ack":
+        return JSONResponse({"ok": False, "code": "no_ack", "message": "request has not been acked"},
+                             status_code=409)
+    if reason == "mismatch":
+        return JSONResponse({"ok": False, "code": "mismatch", "message": "receipt/session/window mismatch"},
+                             status_code=403)
+    if reason == "protocol":
+        return JSONResponse(_PROTOCOL_MISMATCH, status_code=400)
+    if reason == "duplicate":
+        return JSONResponse({"ok": False, "code": "duplicate_completion", "message": "already completed"},
+                             status_code=409)
+    if reason == "oversize":
+        return JSONResponse({"ok": False, "code": "oversize", "message": "result exceeds the size budget"},
+                             status_code=413)
+    return JSONResponse({"ok": False, "code": "invalid", "message": "malformed result"}, status_code=400)
 
 
 @router.post("/audit")

@@ -6,7 +6,7 @@ HINT = ("Tell the user: open the page in the Browser pane (Ctrl+Shift+L), enable
 
 
 def _desktop(core, host, ack=True, result=None, delay=0.0, window="w1"):
-    """Thread acting as the Desktop half."""
+    """Thread acting as the Desktop half (protocol v2: claim with session, echo receipt)."""
     out = {}
 
     def run():
@@ -16,11 +16,16 @@ def _desktop(core, host, ack=True, result=None, delay=0.0, window="w1"):
             if pend:
                 rid = pend[0]["request_id"]
                 out["req"] = pend[0]
+                receipt = ""
                 if ack:
-                    out["claimed"] = core.claim_ack(rid, window)
+                    claim = core.claim_ack(rid, window, pend[0].get("session_id", ""))
+                    out["claimed"] = claim["claimed"]
+                    receipt = claim.get("receipt", "")
                 time.sleep(delay)
                 if result is not None:
-                    out["posted"] = core.post_result(rid, result)
+                    wire = {"pv": core.PROTOCOL, "receipt": receipt,
+                            "session_id": pend[0].get("session_id", ""), "window": window, **result}
+                    out["posted"] = core.post_result(rid, wire)["posted"]
                 return
             time.sleep(0.01)
 
@@ -88,8 +93,8 @@ def test_second_ack_not_claimed(core, host):
             break
         time.sleep(0.01)
     rid = p[0]["request_id"]
-    assert core.claim_ack(rid, "A") is True
-    assert core.claim_ack(rid, "B") is False
+    assert core.claim_ack(rid, "A", "s")["claimed"] is True
+    assert core.claim_ack(rid, "B", "s")["claimed"] is False
     assert core.pending() == []  # acked requests are no longer pending
     t.join(3)
 
@@ -103,10 +108,10 @@ def test_result_timeout(core, host):
 
 
 def test_claim_unknown_or_malicious_id(core, host):
-    assert core.claim_ack("nope", "w") is False
-    assert core.claim_ack("../../etc", "w") is False
-    assert core.post_result("../x", {"ok": True}) is False
-    assert core.post_result("nope", {"ok": True}) is False
+    assert core.claim_ack("nope", "w")["claimed"] is False
+    assert core.claim_ack("../../etc", "w")["claimed"] is False
+    assert core.post_result("../x", {"ok": True})["posted"] is False
+    assert core.post_result("nope", {"ok": True})["posted"] is False
 
 
 def test_pending_filters_old(core, host):

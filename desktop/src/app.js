@@ -50,8 +50,9 @@ const M = {                          // module state (rebuilt on hot reload; the
   mem: {},                           // url_key -> { findings, dismissed, seen:Set, score }  (python store is the source of truth)
   limiter: createRateLimiter(),
   dirtySince: 0, lastVersion: -1, auditedVersion: -1, resume: null, lastMissingHref: '', skip: 0,
-  stopPoll: null, pollMs: 0, fadeUndo: null
-}
+  stopPoll: null, pollMs: 0, fadeUndo: null,
+  claiming: new Set()                // request ids currently mid-claim: blocks duplicate dispatch without
+}                                     // marking them permanently handled (a transient ack failure must retry)
 
 function log(msg, data) {
   let line = '[pinpoint] ' + msg
@@ -255,28 +256,67 @@ async function doAudit({ source, args, deliver }) {
 }
 
 // ----------------------------------------------------------------------------
-// Agent rendezvous (SPEC 4.2)
+// Agent rendezvous (SPEC 4.2 / H1 threat contract)
 // ----------------------------------------------------------------------------
+async function postEnvelope(id, receipt, sessionId, window, fields) {
+  const envelope = { request_id: id, pv: PROTOCOL, receipt, session_id: sessionId, window, ...fields }
+  if (utf8Bytes(JSON.stringify(envelope)) > RESULT_MAX_BYTES) {
+    const bounded = { request_id: id, pv: PROTOCOL, receipt, session_id: sessionId, window,
+      ok: false, code: 'engine_error', message: 'Result exceeded the size budget.' }
+    await C.rest('/result', { method: 'POST', body: bounded })
+    return
+  }
+  await C.rest('/result', { method: 'POST', body: envelope })
+}
+
 async function handleRequest(p) {
   const id = p && p.request_id
-  if (!id || M.handled.has(id)) return
+  if (!id || M.handled.has(id) || M.claiming.has(id)) return
   if (!C.preview.isAvailable()) { log('request ignored (no preview in this window)', { id }); return }
-  M.handled.add(id)
-  if (M.handled.size > 200) M.handled.delete(M.handled.values().next().value)
-  try { await C.rest('/ack/' + encodeURIComponent(id), { method: 'POST', body: { window: WIN } }) } catch (e) {
-    log('ack not granted', { id, status: httpStatusOf(e) }); return
+  const sessionId = p.session_id
+  const decision = routeDecision(host.state.focusedSessionId.get(), sessionId)
+  if (decision === 'unsupported') { log('request skipped: no comparable session (unsupported)', { id }); return }
+  if (decision === 'skip') { log('request skipped: a different session is focused', { id }); return }
+
+  M.claiming.add(id)
+  const initialOwner = host.state.focusedSessionOwner.get()
+  let receipt = ''
+  try {
+    try {
+      const ackRes = await C.rest('/ack/' + encodeURIComponent(id), { method: 'POST', body: { window: WIN, session_id: sessionId, pv: PROTOCOL } })
+      receipt = (ackRes && ackRes.receipt) || ''
+    } catch (e) {
+      if (httpStatusOf(e) === 409) { M.handled.add(id); log('ack lost: another claimant won', { id }) }
+      else { log('ack not granted (transient, will retry)', { id, status: httpStatusOf(e) }) }
+      return
+    }
+    if (!receipt) { M.handled.add(id); log('ack granted without a receipt; refusing to proceed', { id }); return }
+    M.handled.add(id)
+    if (M.handled.size > 200) M.handled.delete(M.handled.values().next().value)
+  } finally {
+    M.claiming.delete(id)
   }
+
   log('request claimed', { id })
   if (Object.keys(C.storage.get('grants', {}) || {}).length === 0) {
     host.notify({ kind: 'info', title: 'Pinpoint', message: 'Pinpoint will ask permission to run on this site. Choose \u201cAllow on this site\u201d.' })
   }
   let sent = false
-  const post = async body => { sent = true; await C.rest('/result', { method: 'POST', body: { request_id: id, ...body } }) }
+  const post = async fields => { sent = true; await postEnvelope(id, receipt, sessionId, WIN, fields) }
   try {
-    const r = await performAudit({ source: 'agent', args: p.args, deliver: res => post({ ok: true, result: res }) })
+    const r = await performAudit({
+      source: 'agent', args: p.args,
+      deliver: async res => {
+        if (host.state.focusedSessionId.get() !== sessionId || ownerChanged(initialOwner, host.state.focusedSessionOwner.get())) {
+          await post({ ok: false, code: 'session_changed', message: 'Focus or session changed before delivery.' })
+          throw new Error('session_changed')
+        }
+        await post({ ok: true, result: res })
+      }
+    })
     if (!r.ok && !sent) await post({ ok: false, code: r.code, message: r.message })
   } catch (e) {
-    if (!sent) { try { await post({ ok: false, code: 'engine_error', message: cleanText(e && e.message, 200) }) } catch (e2) { log('result post failed ' + cleanText(e2 && e2.message, 80)) } }
+    if (!sent) { try { await post({ ok: false, code: 'engine_error', message: cleanText(e && e.message, 200) }) } catch (e2) { log('result post failed', { id, err: cleanText(e2 && e2.message, 80) }) } }
   }
 }
 async function catchUpPending() {

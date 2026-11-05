@@ -25,6 +25,43 @@ test('mapExecError: host rejection texts -> wire codes', () => {
   assert.equal(B.mapExecError(null).code, 'engine_error')
 })
 
+test('rendezvous protocol constants', () => {
+  assert.equal(B.PROTOCOL, 2)
+  assert.equal(B.RESULT_MAX_BYTES, 256 * 1024)
+})
+
+test('routeDecision: focused session gates claiming, never any-window-wins', () => {
+  assert.equal(B.routeDecision('sessA', 'sessA'), 'match')
+  assert.equal(B.routeDecision('sessA', 'sessB'), 'skip')
+  assert.equal(B.routeDecision('sessA', null), 'unsupported')
+  assert.equal(B.routeDecision('sessA', ''), 'unsupported')
+  assert.equal(B.routeDecision('', 'sessA'), 'unsupported')
+  assert.equal(B.routeDecision(undefined, 'sessA'), 'unsupported')
+  assert.equal(B.routeDecision(null, null), 'unsupported')
+})
+
+test('ownerChanged: only defined owner pairs can signal change', () => {
+  const local = { connectionId: 'local', profile: 'default' }
+  assert.equal(B.ownerChanged(local, { connectionId: 'local', profile: 'default' }), false)
+  assert.equal(B.ownerChanged(local, { connectionId: 'c2', profile: 'default' }), true)
+  assert.equal(B.ownerChanged(local, { connectionId: 'local', profile: 'work' }), true)
+  assert.equal(B.ownerChanged(null, local), false)      // unresolved owner: session equality is the gate
+  assert.equal(B.ownerChanged(local, null), false)
+  assert.equal(B.ownerChanged(null, null), false)
+})
+
+test('utf8Bytes counts encoded bytes, not UTF-16 units', () => {
+  assert.equal(B.utf8Bytes('a'), 1)
+  assert.equal(B.utf8Bytes('€'), 3)
+  assert.equal(B.utf8Bytes('𝄞'), 4)
+  assert.equal(B.utf8Bytes(''), 0)
+})
+
+test('parsePending keeps the routing session id', () => {
+  const rows = B.parsePending({ pending: [{ request_id: 'r1', args: { pin: true }, session_id: 'sessA' }] })
+  assert.deepEqual(rows, [{ request_id: 'r1', args: { pin: true }, session_id: 'sessA' }])
+})
+
 test('cleanText strips controls and bidi, caps with ellipsis', () => {
   assert.equal(B.cleanText('a\u0000b\u202ec\u2066d\n  e', 40), 'abcd e')
   assert.equal(B.cleanText('x'.repeat(50), 10).length, 10)
