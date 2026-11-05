@@ -220,7 +220,7 @@ class H(BaseHTTPRequestHandler):
             STATE['n'] += 1
             turn, tcs, content, tools, lr, lt = decide(req)
         log({'t': time.time(), 'n': STATE['n'], 'stream': req.get('stream'), 'tools': tools, 'last_role': lr,
-             'last_text': lt[:4000], 'turn': turn,
+             'last_text': lt[:13000], 'turn': turn,
              'sent': {'tool_calls': [json.loads(tc['function']['arguments']) | {'_name': tc['function']['name']} for tc in tcs]} if tcs else {'text': content}})
         if req.get('stream'):
             self.send_response(200)
