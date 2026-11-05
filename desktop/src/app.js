@@ -308,6 +308,8 @@ const findingById = id => currentFindings($ui.get()).find(f => f.id === id)
 async function fixFinding(id) {
   const f = findingById(id); if (!f) return
   log('fix pin', { id })
+  setUi({ fixingId: id })
+  C.setTimeout(() => setUi({ fixingId: null }), 2000)
   await sendToAgent(buildPinPrompt(f, $ui.get().url, f.pin), 'Pin #' + (f.pin || '') + ' sent to Hermes')
 }
 async function fixAllHigh() {
@@ -379,6 +381,8 @@ async function sendDesignToHermes(target, note) {
   const s = $ui.get()
   const t = target || s.inspected
   if (!t) return
+  setUi({ designSent: true })
+  C.setTimeout(() => setUi({ designSent: false }), 2000)
   const prompt = formatDesignPrompt(t, s.url, note != null ? note : s.designNote)
   await sendToAgent(prompt, 'Design target sent to Hermes')
 }
@@ -518,7 +522,7 @@ const CSS = `
 .pp-card.err{border-color:color-mix(in srgb,var(--pp-high) 45%,transparent);background:color-mix(in srgb,var(--pp-high) 8%,transparent)}
 .pp-inspector{display:flex;flex-direction:column;gap:8px;border-color:color-mix(in srgb,var(--ui-accent) 45%,transparent)}
 .pp-insp-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.pp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;font-size:11px}
+.pp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:5px;font-size:11px}
 .pp-kv{padding:5px 7px;border-radius:6px;background:var(--ui-bg-tertiary,transparent);border:1px solid var(--ui-stroke-tertiary,var(--dt-border));min-width:0;overflow:hidden}
 .pp-kv span{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ui-text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pp-kv b{display:block;font-family:var(--dt-font-mono,ui-monospace,monospace);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
@@ -638,7 +642,7 @@ function Row({ f, kind, selected, lost }) {
       h('div', { className: 'pp-note' }, cleanText(f.note, 160)),
       h('span', { className: 'pp-sel', title: cleanText(f.selector, 200) }, cleanText(f.selector, 90))),
     h('div', { className: 'pp-rowact' },
-      kind === 'open' ? h('button', { type: 'button', className: 'pp-btn icon ghost', title: 'Fix with Hermes', 'aria-label': 'Fix pin ' + (f.pin || '') + ' with Hermes', onClick: () => void fixFinding(f.id) }, ICON.send()) : null,
+      kind === 'open' ? h('button', { type: 'button', className: 'pp-btn icon ghost' + ($ui.get().fixingId === f.id ? ' active' : ''), title: $ui.get().fixingId === f.id ? 'Dispatched to Hermes' : 'Fix with Hermes', 'aria-label': 'Fix pin ' + (f.pin || '') + ' with Hermes', onClick: () => void fixFinding(f.id) }, ICON.send()) : null,
       kind === 'open' ? h('button', { type: 'button', className: 'pp-btn icon ghost', title: 'Dismiss (intentional)', 'aria-label': 'Dismiss pin ' + (f.pin || ''), onClick: () => void dismissFinding(f.id) }, ICON.x()) : null,
       kind === 'dismissed' ? h('button', { type: 'button', className: 'pp-btn icon ghost', title: 'Reopen', 'aria-label': 'Reopen finding', onClick: () => void reopenFinding(f.id) }, ICON.undo()) : null))
 }
@@ -682,7 +686,7 @@ function DesignInspectorCard({ s }) {
         onChange: e => setUi({ designNote: e.target.value })
       }),
       h('div', { key: 'act', className: 'pp-actions' },
-        h('button', { type: 'button', className: 'pp-btn primary', onClick: () => void sendDesignToHermes(t, s.designNote) }, ICON.send(), 'Send to Hermes'),
+        h('button', { type: 'button', className: 'pp-btn primary' + (s.designSent ? ' active' : ''), onClick: () => void sendDesignToHermes(t, s.designNote) }, ICON.send(), s.designSent ? 'Sent to Hermes!' : 'Send to Hermes'),
         h('button', { type: 'button', className: 'pp-btn', onClick: () => copyText(t.selector || '', 'selectorCopied') }, s.selectorCopied ? 'Copied' : 'Copy Selector'))
     ])
 }
