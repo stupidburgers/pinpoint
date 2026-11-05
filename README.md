@@ -1,6 +1,5 @@
 # Pinpoint
 
-<!-- FILL:banner  docs/banner.png (1200x600, 2:1). See docs/fill-images.md -->
 ![Pinpoint: numbered pins on a live page in Hermes Desktop](docs/banner.png)
 
 Pinpoint measures the page open in Hermes Desktop's Browser pane, pins numbered markers on the real elements that fail, and lets you send one pin to the agent as a fix task. When the page changes, it audits again: pins turn green and you get a score delta.
@@ -24,7 +23,6 @@ Use it: open a page in the Browser pane (`Ctrl+Shift+L`), run **Pinpoint: audit 
 
 ## What you get
 
-<!-- FILL:screenshots  3 images from docs/screenshots/. See docs/fill-images.md -->
 | Audit and pins | Pin card, Fix with Hermes | Re-audit after the fix |
 |---|---|---|
 | ![pins on the page](docs/screenshots/01-pins.png) | ![pin card](docs/screenshots/02-pin-card.png) | ![score delta, green pins](docs/screenshots/03-after-fix.png) |
@@ -92,12 +90,26 @@ Fill this list from the real test run before freeze. Items below are the ones I 
 - The consent *Deny* path was not exercised in the spike.
 - Whether a real model reliably picks `pinpoint_audit` unprompted (tools are deferred; a system-prompt line names both).
 - Multi-window claim race (designed, not measured).
-<!-- FILL:not-verified  update against docs/metrics.md and the e2e results; delete lines that got verified -->
 
 ## Measured results
 
-<!-- FILL:metrics  paste the table from docs/metrics.md (precision/recall on tests/engine/labeled, latency). Do not write numbers that are not in that file. -->
-See [docs/metrics.md](docs/metrics.md). Not yet generated.
+| rule | TP | FP | TN | FN | precision | recall |
+|---|---|---|---|---|---|---|
+| a11y.contrast | 8 | 0 | 9 | 0 | 1.00 | 1.00 |
+| a11y.control-name | 7 | 0 | 6 | 0 | 1.00 | 1.00 |
+| a11y.focus-indicator | 4 | 0 | 4 | 0 | 1.00 | 1.00 |
+| a11y.form-label | 6 | 0 | 5 | 0 | 1.00 | 1.00 |
+| a11y.heading-order | 4 | 0 | 20 | 0 | 1.00 | 1.00 |
+| a11y.img-alt | 2 | 0 | 1 | 0 | 1.00 | 1.00 |
+| a11y.lang | 1 | 0 | 1 | 0 | 1.00 | 1.00 |
+| a11y.page-title | 1 | 0 | 1 | 0 | 1.00 | 1.00 |
+| a11y.tap-target | 7 | 0 | 14 | 0 | 1.00 | 1.00 |
+| a11y.viewport-zoom | 1 | 0 | 1 | 0 | 1.00 | 1.00 |
+| layout.h-overflow | 4 | 0 | 4 | 0 | 1.00 | 1.00 |
+| spacing.tight-targets | 2 | 0 | 2 | 0 | 1.00 | 1.00 |
+| type.line-height | 3 | 0 | 3 | 0 | 1.00 | 1.00 |
+| type.text-small | 5 | 0 | 4 | 0 | 1.00 | 1.00 |
+| **all** | 55 | 0 | 75 | 0 | 1.00 | 1.00 |
 
 ## Develop
 
