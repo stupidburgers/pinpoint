@@ -91,26 +91,83 @@ def request(args, session_id, ack_timeout=4.0, audit_timeout=90.0, poll=POLL):
         _cleanup(rid)
 
 
-def claim_ack(rid, window=""):
-    """Exclusive claim of a request; True for the first caller only."""
+MAX_RESULT_BYTES = 256 * 1024
+POST_OK, POST_UNKNOWN, POST_NO_ACK, POST_BAD_TOKEN, POST_DUPLICATE, POST_TOO_LARGE, POST_BAD = (
+    "ok", "unknown", "no_ack", "bad_token", "duplicate", "too_large", "bad")
+
+
+def claim(rid, window=""):
+    """Exclusive claim of a request. Returns a server-minted claim token for the first caller, else None.
+
+    The token exists only in the ack file and in this return value: never in pending(), events or logs.
+    """
     if not isinstance(rid, str) or not _ID_RE.match(rid) or not _p(rid, "req").exists():
-        return False
+        return None
+    token = uuid.uuid4().hex
     try:
         with open(_p(rid, "ack"), "x", encoding="utf-8") as f:
-            json.dump({"window": str(window)[:80], "t": time.time()}, f)
-        return True
+            json.dump({"window": str(window)[:80], "t": time.time(), "token": token}, f)
+        return token
     except OSError:  # FileExistsError included
-        return False
+        return None
 
 
-def post_result(rid, payload):
-    if not isinstance(rid, str) or not _ID_RE.match(rid) or not isinstance(payload, dict) or not _p(rid, "req").exists():
-        return False
+def claim_ack(rid, window=""):
+    """Boolean form of claim() (kept for in-process callers)."""
+    return claim(rid, window) is not None
+
+
+def _ack_token(rid):
     try:
-        _write_atomic(_p(rid, "res"), payload)
+        data = json.loads(_p(rid, "ack").read_text(encoding="utf-8"))
+        return data.get("token") if isinstance(data, dict) else None
+    except (OSError, ValueError):
+        return None
+
+
+def _publish_once(path, obj):
+    """Write obj so that readers never see a partial file and a second writer cannot replace it."""
+    tmp = path.with_name(path.name + f".{uuid.uuid4().hex[:6]}.tmp")
+    tmp.write_text(json.dumps(obj), encoding="utf-8")
+    try:
+        os.link(tmp, path)  # atomic and fails if path exists
         return True
-    except OSError:
+    except FileExistsError:
         return False
+    finally:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+
+
+def post_result_status(rid, payload, token=None, strict=True):
+    """Complete a request once. strict=True (REST path) requires an ack and the matching claim token."""
+    if not isinstance(rid, str) or not _ID_RE.match(rid) or not _p(rid, "req").exists():
+        return POST_UNKNOWN
+    if not isinstance(payload, dict):
+        return POST_BAD
+    try:
+        if len(json.dumps(payload, ensure_ascii=False).encode("utf-8")) > MAX_RESULT_BYTES:
+            return POST_TOO_LARGE
+    except (TypeError, ValueError):
+        return POST_BAD
+    want = _ack_token(rid)
+    if want is None:
+        if strict or token is not None or _p(rid, "ack").exists():
+            return POST_NO_ACK
+    elif token is not None or strict:
+        import hmac
+        if not isinstance(token, str) or not hmac.compare_digest(token, want):
+            return POST_BAD_TOKEN
+    try:
+        return POST_OK if _publish_once(_p(rid, "res"), payload) else POST_DUPLICATE
+    except OSError:
+        return POST_UNKNOWN
+
+
+def post_result(rid, payload, token=None, strict=False):
+    return post_result_status(rid, payload, token, strict) == POST_OK
 
 
 def pending():

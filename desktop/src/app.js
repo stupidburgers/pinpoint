@@ -16,7 +16,7 @@ const WIN = 'w' + Math.random().toString(36).slice(2, 8)
 const FIXED_FADE_MS = 8000
 const QUIET_MS = 800
 const RESUME_QUIET_MS = 600
-const ENGINE_METHODS = ['audit', 'render', 'setStatuses', 'focusPin', 'clear', 'drain', 'probe', 'destroy']
+const ENGINE_METHODS = ['audit', 'render', 'setStatuses', 'focusPin', 'inspect', 'setInspectMode', 'inspectStep', 'clear', 'drain', 'probe', 'destroy']
 
 const initialUi = () => ({
   phase: 'idle',            // idle | running | result | error
@@ -33,6 +33,11 @@ const initialUi = () => ({
   dismissed: [],            // findings the user/agent marked intentional
   lost: [],                 // ids the engine could not locate
   selected: '',
+  inspecting: false,        // Design Mode live element picker active
+  inspected: null,          // InspectedElement currently selected/inspected
+  designNote: '',           // Custom user instruction in Design Mode Inspector Card
+  receiptCopied: false,
+  selectorCopied: false,
   py: 'unknown',            // unknown | on | off
   paused: false,
   stale: false,             // page changed under us and has no stored pins
@@ -119,7 +124,7 @@ function localSave(key, entry) {
 async function previousFor(key) {
   const st = await storeGet(key)
   if (st && Array.isArray(st.pins)) {
-    const live = st.pins.filter(p => p.status !== 'dismissed' && p.status !== 'fixed' && p.finding).map(p => p.finding)
+    const live = st.pins.filter(p => p.status !== 'dismissed' && p.status !== 'fixed' && p.status !== 'gone' && p.finding).map(p => p.finding)
     const dis = st.pins.filter(p => p.status === 'dismissed' && p.finding).map(p => p.finding)
     const known = live.length > 0 || !!st.last || st.pins.length > 0
     return { findings: known ? live : null, dismissed: dis, seen: st.pins.map(p => p.id), score: st.last ? st.last.score : null }
@@ -230,7 +235,7 @@ async function doAudit({ source, args, deliver }) {
     C.storage.set('lastKey', key); C.storage.set('active', true)
     M.active = true; M.lastMissingHref = ''; M.resume = null; M.skip = 0
     if (M.fadeUndo) { M.fadeUndo(); M.fadeUndo = null }
-    setUi({ phase: 'result', result: res, url: res.url || probe.url, key, prevScore, delta, unresolved, fixed: fixedF, dismissed: prev.dismissed, lost, selected: '', pinsShown: pin })
+    setUi({ phase: 'result', result: res, url: res.url || probe.url, key, prevScore, delta, unresolved, fixed: fixedF, dismissed: prev.dismissed, lost, selected: '', inspected: res.inspected || probe.selected || $ui.get().inspected, inspecting: !!probe.inspecting, receiptCopied: false, pinsShown: pin })
     ensurePoll()
     if (fixedF.length && pin) {
       M.fadeUndo = C.setTimeout(() => {
@@ -263,7 +268,8 @@ async function handleRequest(p) {
   if (!C.preview.isAvailable()) { log('request ignored (no preview in this window)', { id }); return }
   M.handled.add(id)
   if (M.handled.size > 200) M.handled.delete(M.handled.values().next().value)
-  try { await C.rest('/ack/' + encodeURIComponent(id), { method: 'POST', body: { window: WIN } }) } catch (e) {
+  let claimToken = ''
+  try { const ar = await C.rest('/ack/' + encodeURIComponent(id), { method: 'POST', body: { window: WIN } }); claimToken = ar && typeof ar.claim_token === 'string' ? ar.claim_token : '' } catch (e) {
     log('ack not granted', { id, status: httpStatusOf(e) }); return
   }
   log('request claimed', { id })
@@ -271,7 +277,7 @@ async function handleRequest(p) {
     host.notify({ kind: 'info', title: 'Pinpoint', message: 'Pinpoint will ask permission to run on this site. Choose \u201cAllow on this site\u201d.' })
   }
   let sent = false
-  const post = async body => { sent = true; await C.rest('/result', { method: 'POST', body: { request_id: id, ...body } }) }
+  const post = async body => { sent = true; await C.rest('/result', { method: 'POST', body: { request_id: id, claim_token: claimToken, ...body } }) }
   try {
     const r = await performAudit({ source: 'agent', args: p.args, deliver: res => post({ ok: true, result: res }) })
     if (!r.ok && !sent) await post({ ok: false, code: r.code, message: r.message })
@@ -338,15 +344,59 @@ async function locate(id) {
 async function clearPins() {
   M.active = false; C.storage.set('active', false); M.seq++
   try { await callApi('clear', []) } catch (e) { /* no page / no consent: nothing drawn */ }
-  setUi({ pinsShown: false, cleared: true })
+  setUi({ pinsShown: false, inspecting: false, inspected: null, cleared: true })
   log('cleared')
+}
+async function toggleDesignMode(force) {
+  const cur = $ui.get().inspecting
+  const next = typeof force === 'boolean' ? force : !cur
+  try {
+    const probe = await inject()
+    rememberGrant(probe.url)
+    const r = (await callApi('setInspectMode', [next])).v
+    M.active = true; C.storage.set('active', true)
+    setUi({
+      inspecting: r ? !!r.inspecting : next,
+      inspected: (r && r.selected) || probe.selected || $ui.get().inspected,
+      url: $ui.get().url || probe.url,
+      key: $ui.get().key || probe.key || urlKey(probe.url)
+    })
+    ensurePoll()
+  } catch (e) {
+    const m = mapExecError(e)
+    if (m.code === 'consent_denied') { denied(m); return }
+    setUi({ phase: 'error', error: m })
+  }
+}
+async function stepDesign(dir) {
+  try {
+    await inject()
+    const r = (await callApi('inspectStep', [dir])).v
+    if (r) setUi({ inspected: r })
+  } catch (e) { /* page gone */ }
+}
+async function sendDesignToHermes(target, note) {
+  const s = $ui.get()
+  const t = target || s.inspected
+  if (!t) return
+  const prompt = formatDesignPrompt(t, s.url, note != null ? note : s.designNote)
+  await sendToAgent(prompt, 'Design target sent to Hermes')
+}
+function copyText(text, key) {
+  try {
+    navigator.clipboard.writeText(text).then(() => {
+      setUi({ [key]: true })
+      C.setTimeout(() => setUi({ [key]: false }), 1800)
+    }, () => {})
+  } catch (e) { /* clipboard unavailable */ }
 }
 
 // ============================================================================
 // Poll loop (SPEC 8.3)
 // ============================================================================
 function ensurePoll() {
-  const want = $ui.get().pinsShown ? 500 : 1000
+  const s = $ui.get()
+  const want = (s.pinsShown || s.inspecting) ? 500 : 1000
   if (M.stopPoll && M.pollMs === want) return
   if (M.stopPoll) M.stopPoll()
   M.pollMs = want
@@ -368,6 +418,8 @@ async function tick() {
   const p = r.v; if (!p) return
   const s = $ui.get()
   M.lastMissingHref = ''
+  if (typeof p.inspecting === 'boolean' && p.inspecting !== s.inspecting) setUi({ inspecting: p.inspecting })
+  if (p.selected && (!s.inspected || p.selected.selector !== s.inspected.selector)) setUi({ inspected: p.selected })
 
   let events = []
   try { events = (await callApi('drain', [])).v || [] } catch (e) { events = [] }
@@ -375,6 +427,8 @@ async function tick() {
     if (ev.type === 'pin-click') setUi({ selected: ev.id })
     else if (ev.type === 'fix') void fixFinding(ev.id)
     else if (ev.type === 'dismiss') void dismissFinding(ev.id, 'Dismissed from the pin card')
+    else if (ev.type === 'inspect-select' && ev.target) setUi({ inspected: ev.target })
+    else if (ev.type === 'design' && ev.target) { setUi({ inspected: ev.target, designNote: ev.note || '' }); host.notify({ kind: 'info', title: 'Pinpoint', message: 'Element selected. Review the instruction in the Pinpoint pane, then press Send to Hermes.' }) }
   }
 
   const auto = prefs().autoReaudit
@@ -441,7 +495,7 @@ const CSS = `
   display:flex;flex-direction:column;height:100%;min-height:0;font-family:var(--dt-font-sans,inherit);font-size:12px;line-height:1.45;color:var(--ui-text-primary)}
 .pp *{box-sizing:border-box}
 .pp button{font:inherit;color:inherit;cursor:pointer}
-.pp button:focus-visible,.pp-chip:focus-visible{outline:2px solid var(--ui-accent);outline-offset:2px;border-radius:6px}
+.pp button:focus-visible,.pp input:focus-visible,.pp-chip:focus-visible,.pp-qchip:focus-visible{outline:2px solid var(--ui-accent);outline-offset:2px;border-radius:6px}
 .pp-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--ui-stroke-tertiary,var(--dt-border))}
 .pp-title{font-size:13px;font-weight:650;letter-spacing:.01em;display:flex;align-items:center;gap:6px}
 .pp-title svg{width:15px;height:15px;color:var(--ui-accent)}
@@ -453,13 +507,25 @@ const CSS = `
 .pp-btn svg{width:13px;height:13px;flex:none}
 .pp-btn.primary{background:var(--ui-accent);border-color:var(--ui-accent);color:var(--dt-primary-foreground,var(--ui-bg-editor));font-weight:600}
 .pp-btn.primary:hover{background:var(--ui-accent);filter:brightness(1.08)}
+.pp-btn.active{border-color:var(--ui-accent);background:color-mix(in srgb,var(--ui-accent) 16%,transparent);color:var(--ui-text-primary);font-weight:600}
 .pp-btn.ghost{border-color:transparent;background:transparent;color:var(--ui-text-secondary)}
 .pp-btn.ghost:hover{background:var(--ui-control-hover-background,var(--ui-bg-tertiary));color:var(--ui-text-primary)}
 .pp-btn.icon{width:28px;padding:0}
+.pp-btn.sm{min-height:24px;padding:0 8px;font-size:11px}
 .pp-card{border:1px solid var(--ui-stroke-secondary,var(--dt-border));background:var(--ui-bg-card,var(--ui-bg-secondary));border-radius:10px;padding:12px}
 .pp-card h3{margin:0 0 4px;font-size:13px;font-weight:650}
 .pp-card p{margin:0 0 10px;color:var(--ui-text-secondary)}
 .pp-card.err{border-color:color-mix(in srgb,var(--pp-high) 45%,transparent);background:color-mix(in srgb,var(--pp-high) 8%,transparent)}
+.pp-inspector{display:flex;flex-direction:column;gap:8px;border-color:color-mix(in srgb,var(--ui-accent) 45%,transparent)}
+.pp-insp-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pp-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px}
+.pp-kv{padding:5px 7px;border-radius:6px;background:var(--ui-bg-tertiary,transparent);border:1px solid var(--ui-stroke-tertiary,var(--dt-border));min-width:0}
+.pp-kv span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:var(--ui-text-tertiary)}
+.pp-kv b{display:block;font-family:var(--dt-font-mono,ui-monospace,monospace);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-qchips{display:flex;gap:5px;flex-wrap:wrap}
+.pp-qchip{min-height:24px;padding:2px 8px;border-radius:99px;border:1px solid var(--ui-stroke-secondary,var(--dt-border));background:var(--ui-bg-secondary,transparent);font-size:11px;color:var(--ui-text-secondary)}
+.pp-qchip:hover{background:var(--ui-control-hover-background,var(--ui-bg-tertiary));color:var(--ui-text-primary)}
+.pp-input{width:100%;min-height:30px;padding:4px 8px;border-radius:7px;border:1px solid var(--ui-stroke-secondary,var(--dt-border));background:var(--ui-bg-editor,var(--ui-bg-secondary));color:var(--ui-text-primary);font:inherit}
 .pp-banner{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:8px;border:1px solid var(--ui-stroke-tertiary,var(--dt-border));background:var(--ui-bg-tertiary,transparent);color:var(--ui-text-secondary)}
 .pp-banner svg{width:14px;height:14px;flex:none;margin-top:2px;color:var(--pp-medium)}
 .pp-banner b{color:var(--ui-text-primary);font-weight:600}
@@ -577,23 +643,79 @@ function Row({ f, kind, selected, lost }) {
       kind === 'dismissed' ? h('button', { type: 'button', className: 'pp-btn icon ghost', title: 'Reopen', 'aria-label': 'Reopen finding', onClick: () => void reopenFinding(f.id) }, ICON.undo()) : null))
 }
 
-function Banner({ children, action }) {
-  return h('div', { className: 'pp-banner', role: 'status' }, ICON.alert(), h('div', null, children), action || null)
+function Banner({ children, action, tone }) {
+  return h('div', { className: 'pp-banner' + (tone ? ' ' + tone : ''), role: 'status' }, ICON.alert(), h('div', null, children), action || null)
+}
+
+const DESIGN_PRESETS = ['Spacing & alignment', 'Typography hierarchy', 'Contrast & polish', 'Responsive layout']
+
+function DesignInspectorCard({ s }) {
+  const t = s.inspected
+  const r = (t && t.rect) || {}
+  const bm = (t && t.boxModel) || {}
+  const ty = (t && t.typography) || {}
+  const cl = (t && t.colors) || {}
+  return h('div', { className: 'pp-card pp-inspector', role: 'region', 'aria-label': 'Design Mode Inspector Card' },
+    h('div', { className: 'pp-insp-head' },
+      h('h3', null, 'Design Mode Inspector'),
+      h('span', { className: 'pp-kbd' }, s.inspecting ? 'Picker active (Esc to exit)' : 'Selected')),
+    !t ? h('p', null, 'Hover and click any element on the page to inspect its box model, typography, and colors, or use arrow keys to walk the DOM.') : [
+      h('div', { key: 'sel', className: 'pp-sel', title: cleanText(t.selector, 200) }, h('b', null, cleanText(t.tag || 'element', 24)), ' · ', cleanText(t.selector, 120)),
+      h('div', { key: 'grid', className: 'pp-grid' },
+        h('div', { className: 'pp-kv' }, h('span', null, 'Box (w × h / pad / mar)'), h('b', null, (r.w || 0) + ' × ' + (r.h || 0) + ' · ' + (bm.padding || '0px') + ' · ' + (bm.margin || '0px'))),
+        h('div', { className: 'pp-kv' }, h('span', null, 'Typography'), h('b', null, (ty.fontFamily || 'sans') + ' ' + (ty.fontSize || '') + ' / ' + (ty.fontWeight || '400') + ' / ' + (ty.lineHeight || 'normal'))),
+        h('div', { className: 'pp-kv' }, h('span', null, 'Colors & Contrast'), h('b', null, (cl.fg || '') + ' on ' + (cl.bg || '') + (cl.contrastRatio ? ' (' + cl.contrastRatio + ':1)' : ''))),
+        h('div', { className: 'pp-kv' }, h('span', null, 'Layout'), h('b', null, ((t.layout && t.layout.display) || 'block') + ' · ' + ((t.layout && t.layout.position) || 'static')))),
+      h('div', { key: 'nav', className: 'pp-actions', role: 'group', 'aria-label': 'DOM tree navigation' },
+        [['↑ Parent', 'parent'], ['↓ Child', 'child'], ['← Prev', 'prev'], ['→ Next', 'next']].map(([lbl, dir]) =>
+          h('button', { key: dir, type: 'button', className: 'pp-btn sm', onClick: () => void stepDesign(dir) }, lbl))),
+      h('div', { key: 'presets', className: 'pp-qchips', role: 'group', 'aria-label': 'Quick design prompts' },
+        DESIGN_PRESETS.map(p => h('button', {
+          key: p, type: 'button', className: 'pp-qchip',
+          onClick: () => setUi({ designNote: s.designNote ? s.designNote + ' — ' + p : p })
+        }, p))),
+      h('input', {
+        key: 'inp', type: 'text', className: 'pp-input',
+        placeholder: 'Custom instructions for Hermes…',
+        'aria-label': 'Custom instructions for Hermes',
+        value: s.designNote || '',
+        onChange: e => setUi({ designNote: e.target.value })
+      }),
+      h('div', { key: 'act', className: 'pp-actions' },
+        h('button', { type: 'button', className: 'pp-btn primary', onClick: () => void sendDesignToHermes(t, s.designNote) }, ICON.send(), 'Send to Hermes'),
+        h('button', { type: 'button', className: 'pp-btn', onClick: () => copyText(t.selector || '', 'selectorCopied') }, s.selectorCopied ? 'Copied' : 'Copy Selector'))
+    ])
 }
 
 function resultView(s) {
   const r = s.result
   const out = []
+  const auditState = classifyAuditState(r)
+  if (auditState.state === 'partial') {
+    out.push(h(Banner, { key: 'st-partial', tone: 'partial' }, h('b', null, 'Partial audit coverage. '), 'Some checks or elements were skipped (' + cleanText(auditState.reason, 80) + '). Unchecked pins stay open.'))
+  } else if (auditState.state === 'unknown') {
+    out.push(h(Banner, { key: 'st-unknown', tone: 'unknown' }, h('b', null, 'Unknown audit coverage. '), 'Rule coverage metadata is missing (' + cleanText(auditState.reason, 80) + '). Prior findings cannot be marked fixed.'))
+  } else if (auditState.state === 'error') {
+    out.push(h(Banner, { key: 'st-error', tone: 'error' }, h('b', null, 'Audit engine error. '), 'One or more checks failed (' + cleanText(auditState.reason, 80) + '). Re-audit after reloading.'))
+  }
   const dismissedIds = new Set(s.dismissed.map(f => f.id))
   const open = currentFindings(s).filter(f => !dismissedIds.has(f.id))
   const counts = { high: 0, medium: 0, low: 0 }
   open.forEach(f => { if (counts[f.sev] != null) counts[f.sev]++ })
   const diff = typeof s.prevScore === 'number' ? r.score - s.prevScore : null
+  const hasDeltaBanner = (diff !== null && diff !== 0) || s.fixed.length > 0
   out.push(h('div', { key: 'sum', className: 'pp-summary' },
     h(Ring, { score: r.score }),
     h('div', { className: 'pp-sum-side' },
       h('div', { className: 'pp-counts' }, ['high', 'medium', 'low'].map(k => h('span', { key: k, className: 'pp-pill pp-sev-' + k }, h('span', { className: 'pp-dot', 'aria-hidden': 'true' }), counts[k] + ' ' + SEV_LABEL[k]))),
-      diff !== null && diff !== 0 ? h('div', { className: 'pp-delta', 'aria-live': 'polite' }, h('b', { className: diff > 0 ? 'up' : 'down' }, (diff > 0 ? '+' : '\u2212') + Math.abs(diff)), 'from ' + s.prevScore + (s.fixed.length ? ' \u00b7 ' + s.fixed.length + ' fixed' : '')) : null,
+      hasDeltaBanner ? h('div', { className: 'pp-delta', 'aria-live': 'polite' },
+        diff !== null && diff !== 0 ? h('b', { className: diff > 0 ? 'up' : 'down' }, (diff > 0 ? '+' : '−') + Math.abs(diff)) : null,
+        typeof s.prevScore === 'number' ? 'from ' + s.prevScore + (s.fixed.length ? ' · ' + s.fixed.length + ' fixed' : '') : (s.fixed.length + ' fixed'),
+        h('button', {
+          type: 'button', className: 'pp-btn sm',
+          'aria-label': 'Copy Fix Receipt',
+          onClick: () => copyText(s.delta && s.delta.receipt ? s.delta.receipt : formatFixReceipt(r.score, s.prevScore, s.fixed, open.length, s.url), 'receiptCopied')
+        }, s.receiptCopied ? 'Copied' : 'Copy Fix Receipt')) : null,
       h('div', { className: 'pp-actions' },
         h('button', { type: 'button', className: 'pp-btn', disabled: counts.high === 0, onClick: () => void fixAllHigh(), title: 'Send up to 8 high-severity findings to Hermes' }, ICON.send(), 'Fix all high')))))
   if (r.limits && r.limits.length) out.push(h('div', { key: 'lim', className: 'pp-note', style: { color: 'var(--ui-text-tertiary)' } }, 'Not checked: ' + r.limits.slice(0, 3).map(l => cleanText(l, 70)).join('; ')))
@@ -636,12 +758,14 @@ function Pane() {
         h('button', { type: 'button', className: 'pp-btn primary', onClick: () => void performAudit({ source: 'user' }) }, ICON.target(), 'Audit page')))
     }
   }
+  if (s.inspecting || s.inspected) body.push(h(DesignInspectorCard, { key: 'design-card', s }))
   if (s.result) body.push(...resultView(s))
 
   return h('div', { className: 'pp' },
     h('div', { className: 'pp-head' },
       h('div', { className: 'pp-title' }, ICON.pin(), 'Pinpoint'),
       h('div', { className: 'pp-url', title: s.url }, s.url ? s.url.replace(/^https?:\/\//, '') : ''),
+      h('button', { type: 'button', className: 'pp-btn' + (s.inspecting ? ' active' : ''), 'aria-pressed': s.inspecting, 'aria-label': 'Design Mode (Inspect)', title: 'Design Mode (Inspect)', onClick: () => void toggleDesignMode() }, ICON.target(), 'Design Mode (Inspect)'),
       h('button', { type: 'button', className: 'pp-btn primary', disabled: s.phase === 'running', onClick: () => void performAudit({ source: 'user' }) }, ICON.refresh(), s.result ? 'Re-audit' : 'Audit')),
     h('div', { className: 'pp-scroll' }, body),
     s.result ? h('div', { className: 'pp-foot' },
@@ -692,6 +816,7 @@ export default {
     ctx.registerMany([
       { id: 'audit', area: PALETTE_AREA, data: { id: 'pinpoint.audit', label: 'Pinpoint: audit page', keywords: ['pinpoint', 'audit', 'accessibility', 'contrast', 'pins'], run: () => void performAudit({ source: 'user' }) } },
       { id: 'reaudit', area: PALETTE_AREA, data: { id: 'pinpoint.reaudit', label: 'Pinpoint: re-audit', keywords: ['pinpoint', 'verify', 'recheck'], run: () => void performAudit({ source: 'user' }) } },
+      { id: 'design', area: PALETTE_AREA, data: { id: 'pinpoint.design', label: 'Pinpoint: toggle Design Mode (inspect element)', keywords: ['pinpoint', 'design', 'inspect', 'element', 'picker'], run: () => void toggleDesignMode() } },
       { id: 'clear', area: PALETTE_AREA, data: { id: 'pinpoint.clear', label: 'Pinpoint: clear pins', keywords: ['pinpoint', 'remove', 'pins'], run: () => void clearPins() } },
       { id: 'fixhigh', area: PALETTE_AREA, data: { id: 'pinpoint.fixhigh', label: 'Pinpoint: send all high-severity to agent', keywords: ['pinpoint', 'fix', 'agent', 'high'], run: () => void fixAllHigh() } },
       { id: 'pane', area: PANES_AREA, title: 'Pinpoint', data: { placement: 'right', width: '340px' }, render: () => h(Pane, null) },

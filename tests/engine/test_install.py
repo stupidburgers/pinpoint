@@ -5,8 +5,9 @@ def test_probe_shape_and_size(load):
     page = load("blank")
     p = page.pp.call("probe")
     assert p["protocol"] == 1 and p["version"] == "0.1.0"
-    assert set(p) == {"protocol", "version", "url", "key", "ready", "pins", "dirty", "vw", "vh", "docVersion"}
+    assert set(p) == {"protocol", "version", "url", "key", "ready", "pins", "dirty", "vw", "vh", "docVersion", "inspecting", "selected"}
     assert p["ready"] is True and p["pins"] == 0 and p["dirty"] is False
+    assert p["inspecting"] is False and p["selected"] is None
     assert p["vw"] == 800 and p["vh"] == 600
     assert len(json.dumps(p)) <= 300
 
@@ -15,6 +16,7 @@ def test_api_surface(load):
     page = load("blank")
     keys = page.evaluate("Object.keys(window.__pinpoint).sort()")
     assert keys == sorted(["protocol", "version", "audit", "render", "setStatuses", "focusPin",
+                           "inspect", "setInspectMode", "inspectStep",
                            "clear", "drain", "probe", "destroy"])
 
 
