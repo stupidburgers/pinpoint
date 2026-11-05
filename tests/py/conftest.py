@@ -8,17 +8,23 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-PKG = "pinpoint_pkg"
+PKG = "hp.pinpoint"
 
 
 def _load_pkg():
     if PKG in sys.modules:
         return sys.modules[PKG]
+    if "hp" not in sys.modules:
+        parent = types.ModuleType("hp")
+        parent.__path__ = []
+        sys.modules["hp"] = parent
     spec = importlib.util.spec_from_file_location(
         PKG, ROOT / "__init__.py", submodule_search_locations=[str(ROOT)])
     mod = importlib.util.module_from_spec(spec)
+    mod.__package__ = PKG
     sys.modules[PKG] = mod
-    spec.loader.exec_module(mod)
+    src = (ROOT / "__init__.py").read_text(encoding="utf-8")
+    exec(compile(src, str(ROOT / "__init__.py"), "exec"), mod.__dict__)
     return mod
 
 
