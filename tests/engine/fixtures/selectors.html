@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Selectors</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"></head><body>
+<header id="top"><nav class="nav"><a href="/home" id="lnk-home">Home</a><a href="/pricing?x=1">Pricing</a><a href="https://other.example/about">About</a></nav></header>
+<main>
+  <div id="react-12345678"><p>generated parent</p><p id="gen-1">second p</p></div>
+  <section class="css-1a2b3c4 card"><button class="css-9z8y7x6 btn">One</button><button class="css-9z8y7x6 btn">Two</button></section>
+  <section class="card"><button class="btn">Three</button><button class="btn">Four</button></section>
+  <form><input name="email" type="text"><input name="pw" type="password"><input type="text"><input type="text"></form>
+  <img src="/assets/img/hero.jpg?v=3" id="42424242"><img src="/assets/img/team.png">
+  <ul><li>a</li><li>b</li><li>c</li></ul>
+  <div id="dup">x</div><div id="dup">y</div>
+  <div id="1abc">digit start</div>
+  <div id="weird:id">weird</div>
+  <div id="host"></div>
+  <iframe id="frm" srcdoc="<p id='inner-p'>in frame</p><button>b</button>" style="width:200px;height:80px"></iframe>
+</main>
+<script>
+  var r = document.getElementById('host').attachShadow({mode:'open'});
+  r.innerHTML = '<div class="w"><button id="sb">shadow</button><button>other</button></div>';
+</script>
+</body></html>
