@@ -2,7 +2,10 @@
 
 ![Pinpoint: numbered pins on a live page in Hermes Desktop](docs/banner.png)
 
-Pinpoint measures the page open in Hermes Desktop's Browser pane, pins numbered markers on the real elements that fail, and lets you send one pin to the agent as a fix task. When the page changes, it audits again: pins turn green and you get a score delta.
+Pinpoint is two modes on the page open in Hermes Desktop's Browser pane.
+
+- **Audit mode** measures the live page, pins numbered markers on the real elements that fail, and lets you send a pin to the agent as a fix task. When the page changes it audits again: pins turn green and you get a score delta and a pasteable fix receipt.
+- **Design mode** lets you point at any element, see its live box model, typography, layout and contrast, move through the DOM with the arrow keys, and send a targeted instruction to Hermes. The agent can do the same with `pinpoint_audit(inspect_selector=...)`.
 
 The agent does not have to guess whether a CSS change worked. `pinpoint_audit` returns measured numbers (contrast ratio, pixel sizes, selectors), and a second call returns `delta` with the ids that are now fixed.
 
@@ -27,11 +30,11 @@ Use it: open a page in the Browser pane (`Ctrl+Shift+L`), run **Pinpoint: audit 
 |---|---|---|
 | ![pins on the page](docs/screenshots/01-pins.png) | ![pin card](docs/screenshots/02-pin-card.png) | ![score delta, green pins](docs/screenshots/03-after-fix.png) |
 
-Two agent tools:
+Two agent tools (the second mode needs no extra tool):
 
 | Tool | Does |
 |---|---|
-| `pinpoint_audit` | Runs the checks on the open page, draws pins, returns findings (rule, severity, CSS selector, measured values, fix hint). Called again after an edit it adds `delta`: fixed, new and remaining ids, score before and after. |
+| `pinpoint_audit` | Runs the checks on the open page, draws pins, returns findings (rule, severity, CSS selector, measured values, fix hint). Called again after an edit it adds `delta`: fixed, gone, new and remaining ids, score before and after, and a Markdown `receipt`. Optional `inspect_selector` also returns the live computed metadata of one element. |
 | `pinpoint_pins` | `list` stored pins for a page, `dismiss` a finding as intentional (needs a reason, and the user's agreement), `reopen`, `clear`. |
 
 14 rules, WCAG 2.2 thresholds: text contrast, tap-target size, missing `alt`, unlabeled form fields, unnamed buttons and links, heading order, focus indicator removed, `lang`, page title, zoom blocked by the viewport meta, horizontal overflow, text under 12 px, tight line height, tightly spaced targets. Full table in [SPEC.md section 5](SPEC.md).
@@ -51,7 +54,9 @@ flowchart LR
 ```
 
 - The engine is one plain JS function, no dependencies. It reads computed styles and layout, never calls `.focus()` or clicks anything.
-- Ids are stable hashes of the element's role and position in the page, not of the thing the fix changes. "Fixed" means the id is gone on the next audit.
+- Ids are stable hashes of the element's role and position in the page, not of the thing the fix changes. "Fixed" means the same element was measured again and now passes. If the element left the page the pin is "gone", which is not proof of a fix; if Pinpoint cannot tell, it says "not re-checked" and keeps the pin open.
+- Only one Desktop window can complete an audit request, once: the winning window gets a server-minted claim token.
+- Design mode never auto-sends. A pick in the page only fills the Pinpoint pane; you press Send. Page text in the prompt is labelled untrusted, and the overlay ignores synthetic clicks from page scripts.
 - A pin click only submits a visible chat message when you click. Nothing is auto-sent.
 - No hooks, no middleware, no subprocess, no network. Public SDK surfaces only.
 
@@ -89,7 +94,10 @@ Fill this list from the real test run before freeze. Items below are the ones I 
 - Hermes versions other than 0.22.7 (Desktop 2026.7363.3271.0).
 - The consent *Deny* path was not exercised in the spike.
 - Whether a real model reliably picks `pinpoint_audit` unprompted (tools are deferred; a system-prompt line names both).
-- Multi-window claim race (designed, not measured).
+- Multi-window claim race: the claim/token logic is unit-tested, not exercised with two real Desktop windows.
+- Real-model runs: the end-to-end suite uses a scripted model, not a live provider.
+- The e2e desktop-only scenario (`test_6`) fails on this build, also before the Design Mode work; the Python half stays reachable when disabled.
+- Design mode is verified in headless Chromium and unit tests; it has not been screenshotted in the real Desktop pane yet.
 
 ## Measured results
 
