@@ -148,7 +148,7 @@ def post_result_status(rid, payload, token=None, strict=True):
     if not isinstance(payload, dict):
         return POST_BAD
     try:
-        if len(json.dumps(payload).encode("utf-8")) > MAX_RESULT_BYTES:
+        if len(json.dumps(payload, ensure_ascii=False).encode("utf-8")) > MAX_RESULT_BYTES:
             return POST_TOO_LARGE
     except (TypeError, ValueError):
         return POST_BAD
