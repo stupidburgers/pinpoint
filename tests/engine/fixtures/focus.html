@@ -1,0 +1,39 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>focus</title>
+<style>
+#bad-1{outline:none}
+#bad-2:focus{outline:0}
+#bad-3{outline-style:none}
+.nav a:focus{outline:none}
+#bad-6{outline:none}
+.sh{box-shadow:0 1px 2px #000;outline:none}
+#ok-2{outline:none}
+#ok-2:focus-visible{box-shadow:0 0 0 3px #00f}
+#ok-3:focus{outline:none;background:#ffd}
+.mouse:focus:not(:focus-visible){outline:none}
+#ok-5:focus{outline:2px solid red}
+.plain{outline:none}
+#ok-8{outline:none}
+#ok-9{outline:none}
+#ok-9:focus-visible{border-color:#00f}
+@media (max-width:1px){#ok-10{outline:none}}
+@media print{#ok-11{outline:none}}
+</style></head><body>
+<a id="bad-1" href="#a">one</a>
+<button id="bad-2">two</button>
+<input id="bad-3" type="text" aria-label="x">
+<a id="bad-4" href="#b" style="outline:none">inline style</a>
+<nav class="nav"><a id="bad-5" href="#c">nav link</a></nav>
+<div id="bad-6" tabindex="0">div</div>
+<button id="bad-7" class="sh">shadow only</button>
+<button id="ok-1">default ring</button>
+<button id="ok-2">focus-visible shadow</button>
+<button id="ok-3">focus bg</button>
+<button id="ok-4" class="mouse">mouse only removal</button>
+<button id="ok-5">outline red</button>
+<div id="ok-6" class="plain">not focusable</div>
+<p id="ok-7" class="plain">p</p>
+<button id="ok-8" disabled>disabled</button>
+<button id="ok-9">border color</button>
+<button id="ok-10">non matching media</button>
+<button id="ok-11">print only</button>
+</body></html>
