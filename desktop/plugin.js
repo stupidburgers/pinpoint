@@ -271,7 +271,8 @@ function buildAuditOpts(args, prefs, suppress) {
   const o = { maxFindings: 200, tapAdvisory: p.tapAdvisory === 0 ? 0 : 44, contrast: p.contrast === 'AAA' ? 'AAA' : 'AA' }
   if (Array.isArray(a.rules) && a.rules.length) o.rules = a.rules.map(String).slice(0, 20)
   if (suppress && suppress.length) o.suppress = suppress.slice(0, 400)
-  if (typeof a.inspectSelector === 'string' && a.inspectSelector.trim()) o.inspectSelector = cleanText(a.inspectSelector, 200)
+  const insp = typeof a.inspectSelector === 'string' ? a.inspectSelector : typeof a.inspect_selector === 'string' ? a.inspect_selector : ''
+  if (insp.trim()) o.inspectSelector = cleanText(insp, 200)
   return o
 }
 

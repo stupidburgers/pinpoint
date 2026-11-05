@@ -38,6 +38,9 @@ AUDIT_SCHEMA = {
             "min_severity": {"type": "string", "enum": ["low", "medium", "high"], "default": "low"},
             "max_findings": {"type": "integer", "minimum": 1, "maximum": 50, "default": 20},
             "pin": {"type": "boolean", "default": True, "description": "Draw pins on the page."},
+            "inspect_selector": {"type": "string", "maxLength": 200,
+                                 "description": "Also return the live computed box model, typography, layout and "
+                                                "contrast of the first element matching this CSS selector."},
             "expect_url": {"type": "string",
                            "description": "If set and the open page's URL key differs, returns code "
                                           "page_mismatch instead of auditing the wrong page."},
@@ -67,7 +70,7 @@ PINS_SCHEMA = {
     },
 }
 
-_AUDIT_KEYS = {"rules", "min_severity", "max_findings", "pin", "expect_url"}
+_AUDIT_KEYS = {"rules", "min_severity", "max_findings", "pin", "expect_url", "inspect_selector"}
 _PINS_KEYS = {"action", "url", "ids", "reason"}
 
 
@@ -123,6 +126,11 @@ def _validate_audit(args):
         if not isinstance(u, str) or not u.strip() or len(u) > 500:
             raise _BadArgs("expect_url must be a URL string")
         out["expect_url"] = u.strip()
+    if "inspect_selector" in a:
+        q = a["inspect_selector"]
+        if not isinstance(q, str) or not q.strip() or len(q) > 200:
+            raise _BadArgs("inspect_selector must be a CSS selector string (max 200 chars)")
+        out["inspect_selector"] = q.strip()
     out.setdefault("pin", True)
     return out
 
@@ -197,6 +205,24 @@ def _compact_finding(f):
     return out
 
 
+def _clean_inspected(v, depth=0):
+    """Page-originated metadata: keep only short strings, numbers, bools; bounded nesting and size."""
+    if isinstance(v, bool) or v is None:
+        return v
+    if isinstance(v, (int, float)):
+        return v if math.isfinite(v) else None
+    if isinstance(v, str):
+        return clean_text(v, 80)
+    if depth >= 3:
+        return None
+    if isinstance(v, dict):
+        return {clean_text(k, 24): _clean_inspected(x, depth + 1) for k, x in list(v.items())[:24]
+                if k not in ("findings",)}
+    if isinstance(v, list):
+        return [_clean_inspected(x, depth + 1) for x in v[:12]]
+    return None
+
+
 def _audit(args, kw, getter):
     try:
         vargs = _validate_audit(args)
@@ -241,6 +267,11 @@ def _audit(args, kw, getter):
         "delta": rec["delta"], "limits": limits,
         "next": "Fix in source, then call pinpoint_audit again to verify.",
     }
+    if "inspect_selector" in vargs:
+        ins = res.get("inspected")
+        out["inspected"] = _clean_inspected(ins) if isinstance(ins, dict) else None
+        if out["inspected"] is None:
+            out["inspect_note"] = "No element matched inspect_selector on the open page."
     return cap_result(out, RESULT_LIMIT)
 
 
