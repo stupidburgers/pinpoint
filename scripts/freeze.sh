@@ -8,6 +8,10 @@ set -euo pipefail
 export PATH="/c/Program Files/Git/cmd:$PATH"
 cd "$(git rev-parse --show-toplevel)"
 PY="env -u PYTHONPATH python"
+# Keep harness files and any dependency environment out of the scanned tree.
+unset HERMES_RUNTIME_DIR
+VH=$(mktemp -d "${TMPDIR:-/tmp}/pinpoint-freeze.XXXXXX")
+if command -v cygpath >/dev/null 2>&1; then VH=$(cygpath -m "$VH"); fi
 step() { printf '\n== %s\n' "$*"; }
 die()  { echo "FREEZE ABORTED: $*" >&2; exit 1; }
 
@@ -28,16 +32,20 @@ step "3. hygiene scan"
 bash scripts/hygiene.sh
 
 step "4. pytest"
-$PY -m pytest tests/py tests/engine -q
+$PY -m pytest tests/py tests/engine -q --basetemp="$VH/pytest"
+node --test tests/build/bridge.test.mjs
 
 step "5. desktop build check"
 node scripts/build-desktop.mjs --check
 
-step "6. hermes plugins validate"
-VH=$(mktemp -d)
-HERMES_HOME="$VH" hermes plugins validate . | tee "$VH/validate.txt"
+step "6. hermes plugins validate + doctor (full tree, hermetic HERMES_HOME)"
+HERMES_HOME="$VH/validate" hermes plugins validate . --install-deps 2>&1 | tee "$VH/validate.txt"
+! grep -q 'dependency preparation failed:' "$VH/validate.txt" || die "Hermes dependency preparation failed"
 grep -q 'Validation passed\.' "$VH/validate.txt" || die "validate did not print 'Validation passed.'"
 ! grep -q '✗' "$VH/validate.txt" || die "validate output has a failed check"
+grep -q 'security scan — safe' "$VH/validate.txt" || die "security scan not clean (caution/dangerous)"
+HERMES_HOME="$VH/doctor" hermes plugins doctor . --ci | tee "$VH/doctor.txt"
+grep -q 'OK:' "$VH/doctor.txt" || die "doctor --ci did not report OK"
 
 step "7. rewrite plugin-catalog/pinpoint.yaml"
 SHA="$SHA" $PY - <<'PYEOF'
