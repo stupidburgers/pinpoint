@@ -1,0 +1,20 @@
+[
+  {"url": "HTTP://LocalHost:5173/", "key": "http://localhost:5173"},
+  {"url": "http://localhost:5173/index.html/", "key": "http://localhost:5173/index.html"},
+  {"url": "https://Example.com:443/a/b/", "key": "https://example.com/a/b"},
+  {"url": "http://example.com:80/", "key": "http://example.com"},
+  {"url": "http://example.com:8080/x", "key": "http://example.com:8080/x"},
+  {"url": "https://e.com/p?utm_source=x&a=1&utm_medium=y", "key": "https://e.com/p?a=1"},
+  {"url": "https://e.com/?gclid=1&fbclid=2", "key": "https://e.com"},
+  {"url": "https://e.com/p?b=2&a=1&a=0", "key": "https://e.com/p?a=0&a=1&b=2"},
+  {"url": "https://e.com/p?UTM_Source=x&z=1", "key": "https://e.com/p?z=1"},
+  {"url": "http://l:3000/#/dash/", "key": "http://l:3000#/dash"},
+  {"url": "http://l:3000/app?b=1&a=2#/users/7", "key": "http://l:3000/app?a=2&b=1#/users/7"},
+  {"url": "http://e.com/p#section", "key": "http://e.com/p"},
+  {"url": "http://e.com/Path/A", "key": "http://e.com/Path/A"},
+  {"url": "https://e.com/p?a=", "key": "https://e.com/p?a="},
+  {"url": "http://user:pw@e.com/p", "key": "http://e.com/p"},
+  {"url": "file:///C:/site/index.html", "key": "file:///C:/site/index.html"},
+  {"url": "not a url", "key": ""},
+  {"url": "", "key": ""}
+]
