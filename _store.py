@@ -99,23 +99,31 @@ def _empty_delta_result(url, key):
 
 
 def _extract_coverage(result):
-    if not isinstance(result, dict):
-        return None
-    rc = result.get("rules_covered")
-    if isinstance(rc, (list, tuple, set)):
-        return {str(r) for r in rc if isinstance(r, str) and r}
+    """Rules whose complete returned findings can establish absence.
+
+    Requested rules/findings are not execution evidence. Legacy snapshots without
+    checked metadata remain readable, but cannot close an existing open pin.
+    """
+    errors = result.get("errors") or []
+    limits = result.get("limits") or []
+    if not isinstance(errors, list) or not isinstance(limits, list):
+        return set()
+    if result.get("truncated") or any("truncat" in str(x).lower() for x in limits):
+        return set()
+    errored = {e.get("rule") for e in errors if isinstance(e, dict)}
+    if "engine" in errored or any(not isinstance(e, dict) or not e.get("rule") for e in errors):
+        return set()
+    if "rules_covered" in result:
+        rc = result["rules_covered"]
+        if not isinstance(rc, list) or any(not isinstance(r, str) or not r for r in rc):
+            return set()
+        return set(rc) - errored
     stats = result.get("stats")
-    if isinstance(stats, dict):
-        checked = stats.get("checked")
-        if isinstance(checked, dict) and checked:
-            errored = {e["rule"] for e in result.get("errors") or [] if isinstance(e, dict) and e.get("rule")}
-            return {str(r) for r in checked if str(r) not in errored}
-        if isinstance(checked, (list, tuple, set)) and checked:
-            return {str(r) for r in checked}
-    rules = result.get("rules")
-    if isinstance(rules, (list, tuple, set)) and rules:
-        return {str(r) for r in rules if isinstance(r, str) and r}
-    return None
+    checked = stats.get("checked") if isinstance(stats, dict) else None
+    if isinstance(checked, dict):
+        return {r for r, n in checked.items() if isinstance(r, str) and r
+                and isinstance(n, (int, float)) and not isinstance(n, bool) and n >= 0 and r not in errored}
+    return set()
 
 
 def _pin_rule(pin_id, finding_raw):
@@ -163,7 +171,7 @@ def record_audit(result, source="user"):
             for i in pins:
                 if i in prev_open and i not in cur:
                     p_rule = _pin_rule(i, pins[i][1])
-                    if coverage is not None and (not p_rule or p_rule not in coverage):
+                    if not p_rule or p_rule not in coverage:
                         not_rechecked.append(i)
                     else:
                         fixed.append(i)
@@ -190,20 +198,24 @@ def record_audit(result, source="user"):
             delta = None
             if prev_audit:
                 delta = {"prev_score": prev_audit[0], "fixed": fixed, "new": new, "remaining": remaining}
-                if coverage is not None or not_rechecked:
-                    delta["not_rechecked"] = not_rechecked
-                    delta["unresolved"] = not_rechecked
-            _prune(c, key)
+                delta["not_rechecked"] = not_rechecked
+                delta["unresolved"] = not_rechecked
+            _prune(c, key, not_rechecked)
         return {"audit_id": cid, "delta": delta, "url_key": key, "findings": visible,
                 "suppressed": suppressed, "score": score, "counts": counts}
     except Exception:
         return _empty_delta_result("", "")
 
 
-def _prune(c, key):
+def _prune(c, key, not_rechecked=()):
+    # Keep the bounded store, but do not evict an unresolved old pin in favour
+    # of a newly returned truncated batch. At most MAX_PINS old pins exist.
+    priority = ""
+    if not_rechecked:
+        priority = "case when id in (" + ",".join("?" for _ in not_rechecked) + ") then 0 else 1 end, "
     c.execute("delete from pins where url_key=? and id not in "
-              "(select id from pins where url_key=? order by last_seen desc, first_seen desc, id limit ?)",
-              (key, key, MAX_PINS))
+              "(select id from pins where url_key=? order by " + priority + "last_seen desc, first_seen desc, id limit ?)",
+              (key, key, *not_rechecked, MAX_PINS))
     c.execute("delete from audits where url_key=? and id not in "
               "(select id from audits where url_key=? order by id desc limit ?)", (key, key, MAX_AUDITS))
     keys = [r[0] for r in c.execute("select url_key from audits group by url_key order by max(id) desc")]

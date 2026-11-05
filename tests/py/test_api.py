@@ -20,7 +20,7 @@ def F(n, sev="high"):
 
 def AR(ns, score=50):
     fs = [F(n) for n in ns]
-    return {"url": URL, "score": score, "counts": {"high": len(fs), "medium": 0, "low": 0}, "findings": fs}
+    return {"url": URL, "score": score, "counts": {"high": len(fs), "medium": 0, "low": 0}, "findings": fs, "rules_covered": ["a11y.contrast"]}
 
 
 @pytest.fixture

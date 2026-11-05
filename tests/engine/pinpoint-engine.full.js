@@ -1053,7 +1053,9 @@ function pinpointEngine(config) {
    for (var k in X.checked) {
     if (Object.prototype.hasOwnProperty.call(X.checked, k) && !erroredRules[k]) covered.push(k);
    }
-   res.rules_covered = covered;
+   // Coverage for absence-based deltas requires complete finding reporting.
+   // A truncated list or failed finalization cannot disprove an old finding.
+   res.rules_covered = erroredRules.engine || res.limits.some(function(s) { return /truncat/i.test(s); }) ? [] : covered;
   }
   X = null;
   dirty = false;
