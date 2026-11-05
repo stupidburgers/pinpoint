@@ -25,7 +25,7 @@
  .btn-sm { min-height: 44px; padding: 0 18px; font-size: 0.9375rem; }
  .coffee p { margin-top: 6px; color: var(--ink-soft); }
  /* FLAW 3b: a 20 x 20 px favourite button, 2 px from its neighbour */
--.fav { margin-left: 2px; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; border: 0; background: transparent; color: var(--accent); cursor: pointer; }
+-.fav { margin-left: 1px; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; border: 0; background: transparent; color: var(--accent); cursor: pointer; }
 +.fav { margin-left: 12px; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; background: transparent; color: var(--accent); cursor: pointer; }
  .fav[aria-pressed="true"] svg path { fill: currentColor; }
  /* FLAW 11: links 20 px tall and 6 px apart */

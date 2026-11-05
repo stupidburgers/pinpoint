@@ -47,7 +47,7 @@
   {
    "step": "02-css-layout",
    "path": "styles.css",
-   "old_string": ".fav { margin-left: 2px; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;",
+   "old_string": ".fav { margin-left: 1px; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;",
    "new_string": ".fav { margin-left: 12px; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px;"
   },
   {
