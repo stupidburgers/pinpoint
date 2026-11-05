@@ -30,6 +30,12 @@ Use it: open a page in the Browser pane (`Ctrl+Shift+L`), run **Pinpoint: audit 
 |---|---|---|
 | ![pins on the page](docs/screenshots/01-pins.png) | ![pin card](docs/screenshots/02-pin-card.png) | ![score delta, green pins](docs/screenshots/03-after-fix.png) |
 
+Design mode in the real Desktop Browser pane (hover HUD and card, then ArrowRight moves the selection to the next sibling):
+
+| Select and inspect | Keyboard navigation |
+|---|---|
+| ![design mode card](docs/screenshots/04-design-mode.png) | ![arrow key navigation](docs/screenshots/05-design-keyboard.png) |
+
 Two agent tools (the second mode needs no extra tool):
 
 | Tool | Does |
@@ -97,7 +103,7 @@ Fill this list from the real test run before freeze. Items below are the ones I 
 - Multi-window claim race: the claim/token logic is unit-tested, not exercised with two real Desktop windows.
 - Real-model runs: the end-to-end suite uses a scripted model, not a live provider.
 - The e2e desktop-only scenario (`test_6`) fails on this build, also before the Design Mode work; the Python half stays reachable when disabled.
-- Design mode is verified in headless Chromium and unit tests; it has not been screenshotted in the real Desktop pane yet.
+- Design mode was exercised in the real Desktop Browser pane (isolated rig, hover HUD, click-to-select card, arrow-key navigation; screenshots below) by driving it over the debug port. The pane-side Design Mode inspector card and palette command were not clicked through in the real app.
 
 ## Measured results
 
