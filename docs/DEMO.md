@@ -32,7 +32,7 @@ python demo/rig/rig.py stop                  # kills ONLY the rig's processes
 Record with OBS/Clipchamp at 1080p windowed; the rig window is a separate visible window.
 
 ## Facts the captions must respect (measured, do not overclaim)
-* Audit, pins, pin click -> composer text, scripted fix -> re-audit: all work end-to-end in the rig as of 2026-11-04 (tests/e2e/test_loop.py 6/6).
+* Audit, pins, pin click -> composer text, scripted fix -> re-audit: work end-to-end in the rig with a SCRIPTED fake model (not a real LLM). The desktop-only scenario (`test_6`) currently fails, so do not claim 6/6; see README "Not verified yet".
 * The fix turns on AFTER the reload; the agent applies the patch through the regular `patch` tool, with the host's approval flow (the first patch call took about a minute in an unattended rig; on camera, pre-approve the rig's write approval or shoot the click).
 * The tool result to the model is capped at 12 000 chars, so on Lumen (22 findings) the two last low-severity rows are what the page audit knows but the model reply saw 20 - do not claim the model counted all of them.
 * Mobile/narrow panes skip the `.nav` focus-ring flaw (media query hides nav below 880 px).
