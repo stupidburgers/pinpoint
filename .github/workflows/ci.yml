@@ -1,0 +1,39 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install Python deps
+        run: pip install pytest playwright fastapi httpx pyyaml
+      - name: Install Chromium
+        run: playwright install --with-deps chromium
+        if: runner.os == 'Linux'
+      - name: Install Chromium (Windows)
+        run: playwright install chromium
+        if: runner.os != 'Linux'
+      - name: Python and engine tests
+        run: pytest tests/py tests/engine -q
+      - name: Desktop build is up to date
+        run: node scripts/build-desktop.mjs --check
+      - name: Hygiene scan
+        shell: bash
+        run: bash scripts/hygiene.sh
+      # `hermes plugins validate .` needs the Hermes CLI, which this workflow
+      # does not install. scripts/freeze.sh runs it on a machine with Hermes,
+      # and tests/py/test_validate.py skips when the CLI is missing.
