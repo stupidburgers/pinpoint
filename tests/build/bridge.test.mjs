@@ -114,11 +114,52 @@ test('urlKey matches tests/shared/url_key_cases.json when package A has produced
 })
 
 test('localDelta: fixed / new / remaining; null without a previous audit', () => {
-  const f = id => ({ id })
+  const f = id => ({ id, rule: 'test.rule' })
   assert.equal(B.localDelta(null, [f('a')]), null)
-  const d = B.localDelta([f('a'), f('b'), f('c')], [f('b'), f('c'), f('d')], ['z'])
-  assert.deepEqual(d, { fixed: ['a'], new: ['d'], remaining: 2 })
+  const d = B.localDelta([f('a'), f('b'), f('c')], [f('b'), f('c'), f('d')], ['z'], ['test.rule'])
+  assert.deepEqual(d, { fixed: ['a'], new: ['d'], remaining: 2, not_rechecked: [], unresolved: [] })
   assert.deepEqual(B.localDelta([f('a')], [f('z')], ['z']).new, [])   // seen before: not new
+})
+
+test('localDelta: scope change does not falsely fix unmeasured finding', () => {
+  const fCtrl = { id: 'a11y.control-name@412214a1', rule: 'a11y.control-name' }
+  const prev = [fCtrl]
+  const cur = [] // no findings in current audit
+  // Re-audit only covers a11y.img-alt
+  const delta = B.localDelta(prev, cur, [], ['a11y.img-alt'])
+  assert.equal(delta.fixed.includes(fCtrl.id), false, 'control-name must not be fixed')
+  assert.deepEqual(delta.fixed, [])
+  assert.ok(delta.not_rechecked && delta.not_rechecked.includes(fCtrl.id))
+})
+
+test('localDelta: same scope repair clears finding', () => {
+  const fCtrl = { id: 'a11y.control-name@412214a1', rule: 'a11y.control-name' }
+  const prev = [fCtrl]
+  const cur = [] // defect fixed
+  // Re-audit covers a11y.control-name
+  const delta = B.localDelta(prev, cur, [], ['a11y.control-name'])
+  assert.deepEqual(delta.fixed, [fCtrl.id])
+  assert.deepEqual(delta.not_rechecked || [], [])
+})
+
+test('localDelta: missing or malformed coverage is not evidence of repair', () => {
+  const f = { id: 'a11y.control-name@412214a1', rule: 'a11y.control-name' }
+  for (const coverage of [undefined, null, 'broken', [null], {}]) {
+    const d = B.localDelta([f], [], [], coverage)
+    assert.deepEqual(d.fixed, [])
+    assert.deepEqual(d.not_rechecked, [f.id])
+  }
+})
+
+const resultCases = JSON.parse(fs.readFileSync(new URL('../shared/audit_result_cases.json', import.meta.url), 'utf8'))
+for (const c of resultCases) test('raw result coverage boundary: ' + c.name, () => {
+  const f = { id: 'a11y.control-name@412214a1', rule: 'a11y.control-name' }
+  const res = { findings: [], rules_covered: [f.rule], ...c.patch }
+  for (const field of c.omit || []) delete res[field]
+  const current = Array.isArray(res.findings) ? res.findings.filter(x => x && typeof x.id === 'string' && x.id.trim()) : []
+  const d = B.localDelta([f], current, [], B.auditCoverage(res))
+  assert.deepEqual(d.fixed, c.fixed ? [f.id] : [])
+  if (!c.fixed) assert.deepEqual(d.not_rechecked, [f.id])
 })
 
 test('normalizeDelta accepts the python shape and rejects junk', () => {

@@ -56,6 +56,28 @@ def test_score_medium_weight_and_mixed(blank):
     assert res["byRule"] == {"a11y.lang": 1, "a11y.page-title": 1, "a11y.img-alt": 1}
 
 
+def test_truncated_result_cannot_prove_absence_of_untouched_target(blank):
+    page = blank(HEAD + '<button id="bad"></button></body></html>')
+    initial = audit(page, rules=["a11y.control-name"])
+    target = initial["findings"][0]["id"]
+    page.evaluate("""() => {
+      const bad = document.getElementById('bad');
+      for (let i=0;i<200;i++) { const b=document.createElement('button'); b.id='early-'+i; bad.before(b); }
+    }""")
+    result = audit(page, rules=["a11y.control-name"])
+    assert target not in [f["id"] for f in result["findings"]]
+    assert any("truncated" in s for s in result["limits"])
+    assert result["rules_covered"] == []
+    assert page.locator('#bad').get_attribute('aria-label') is None
+
+
+def test_global_finalization_error_cannot_prove_absence(blank):
+    page = blank(HEAD + '<button id="bad"></button></body></html>')
+    result = audit(page, rules=["a11y.control-name"], suppress={})
+    assert any(e["rule"] == "engine" for e in result["errors"])
+    assert result["rules_covered"] == []
+
+
 def test_result_shape(load):
     page = load("tap")
     r = audit(page)
@@ -122,6 +144,7 @@ def test_rules_filter_and_unknown_rule(load):
     page = load("tap")
     r = audit(page, rules=["a11y.lang", "no.such.rule"])
     assert set(r["stats"]["checked"]) == {"a11y.lang"}
+    assert set(r.get("rules_covered", [])) == {"a11y.lang"}
     assert r["errors"] == [{"rule": "no.such.rule", "message": "unknown rule"}]
 
 

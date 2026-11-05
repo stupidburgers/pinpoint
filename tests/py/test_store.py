@@ -30,7 +30,7 @@ def F(n, sev="high", rule="a11y.contrast", label="btn"):
 
 def audit(ns, score=50, url=URL):
     fs = [F(n) for n in ns]
-    return {"url": url, "score": score, "counts": {"high": len(fs), "medium": 0, "low": 0}, "findings": fs}
+    return {"url": url, "score": score, "counts": {"high": len(fs), "medium": 0, "low": 0}, "findings": fs, "rules_covered": ["a11y.contrast"]}
 
 
 @pytest.fixture
@@ -189,3 +189,73 @@ def test_bad_inputs_do_not_raise(store, clock):
     for bad in (None, {}, {"url": ""}, {"url": URL, "findings": "x"}, {"url": URL, "findings": [None, 3, {}]}):
         r = store.record_audit(bad, "user")
         assert isinstance(r, dict)
+
+
+def test_scope_change_does_not_falsely_fix_untouched_finding(store, clock):
+    # Audit 1 checks a11y.control-name, finding #bad has missing name
+    f_ctrl = F(1, rule="a11y.control-name", label="bad-btn")
+    audit1 = {
+        "url": URL,
+        "score": 80,
+        "counts": {"high": 1, "medium": 0, "low": 0},
+        "findings": [f_ctrl],
+        "stats": {"checked": {"a11y.control-name": 1}},
+        "rules_covered": ["a11y.control-name"],
+    }
+    r1 = store.record_audit(audit1, "user")
+    assert r1["audit_id"] == 1
+    pins1 = {p["id"]: p["status"] for p in store.list_pins(URL)}
+    assert pins1[f_ctrl["id"]] == "open"
+
+    clock()
+    # Audit 2 only checks a11y.img-alt; button is untouched and no img-alt issues
+    audit2 = {
+        "url": URL,
+        "score": 100,
+        "counts": {"high": 0, "medium": 0, "low": 0},
+        "findings": [],
+        "stats": {"checked": {"a11y.img-alt": 0}},
+        "rules_covered": ["a11y.img-alt"],
+    }
+    r2 = store.record_audit(audit2, "auto")
+    d2 = r2["delta"]
+    assert d2 is not None
+    # CRITICAL: Untouched control-name finding MUST NOT be marked fixed!
+    assert f_ctrl["id"] not in d2["fixed"]
+    assert d2["fixed"] == []
+    assert f_ctrl["id"] in d2.get("not_rechecked", []) or f_ctrl["id"] in d2.get("unresolved", [])
+    # Pin status in persistent store MUST remain open, not fixed
+    pins2 = {p["id"]: p["status"] for p in store.list_pins(URL)}
+    assert pins2[f_ctrl["id"]] == "open"
+
+
+def test_same_scope_repair_clears_finding(store, clock):
+    # Audit 1 checks a11y.control-name, finding present
+    f_ctrl = F(1, rule="a11y.control-name", label="bad-btn")
+    audit1 = {
+        "url": URL,
+        "score": 80,
+        "counts": {"high": 1, "medium": 0, "low": 0},
+        "findings": [f_ctrl],
+        "stats": {"checked": {"a11y.control-name": 1}},
+        "rules_covered": ["a11y.control-name"],
+    }
+    store.record_audit(audit1, "user")
+
+    clock()
+    # Audit 2 rechecks a11y.control-name after user repaired the button
+    audit2 = {
+        "url": URL,
+        "score": 100,
+        "counts": {"high": 0, "medium": 0, "low": 0},
+        "findings": [],
+        "stats": {"checked": {"a11y.control-name": 1}},
+        "rules_covered": ["a11y.control-name"],
+    }
+    r2 = store.record_audit(audit2, "auto")
+    d2 = r2["delta"]
+    assert d2 is not None
+    assert f_ctrl["id"] in d2["fixed"]
+    pins2 = {p["id"]: p["status"] for p in store.list_pins(URL)}
+    assert pins2[f_ctrl["id"]] == "fixed"
+

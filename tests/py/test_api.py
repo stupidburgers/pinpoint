@@ -20,7 +20,7 @@ def F(n, sev="high"):
 
 def AR(ns, score=50):
     fs = [F(n) for n in ns]
-    return {"url": URL, "score": score, "counts": {"high": len(fs), "medium": 0, "low": 0}, "findings": fs}
+    return {"url": URL, "score": score, "counts": {"high": len(fs), "medium": 0, "low": 0}, "findings": fs, "rules_covered": ["a11y.contrast"]}
 
 
 @pytest.fixture
@@ -117,6 +117,36 @@ def test_audit_bad_body(client):
     assert client.post(P + "/audit", json={"source": "user"}).status_code == 422
     r = client.post(P + "/audit", json={"result": {"url": "nonsense"}, "source": "user"})
     assert r.status_code == 400
+
+
+RESULT_CASES = json.loads((ROOT / "tests" / "shared" / "audit_result_cases.json").read_text("utf-8"))
+
+
+@pytest.mark.parametrize("case", RESULT_CASES, ids=lambda c: c["name"])
+def test_raw_result_boundary_through_rest(client, case):
+    f = {"id": "a11y.control-name@412214a1", "rule": "a11y.control-name", "sev": "high"}
+    base = {"url": URL, "score": 100, "findings": [], "rules_covered": [f["rule"]]}
+    assert client.post(P + "/audit", json={"result": {**base, "findings": [f]}}).status_code == 200
+    before = client.get(P + "/store", params={"url_key": URL}).json()
+    incoming = {**base, **case["patch"]}
+    for field in case.get("omit", []):
+        incoming.pop(field, None)
+    response = client.post(P + "/audit", json={"result": incoming})
+    saved = client.get(P + "/store", params={"url_key": URL}).json()
+    if case["fixed"]:
+        assert response.status_code == 200
+        assert response.json()["delta"]["fixed"] == [f["id"]]
+        assert saved["pins"][0]["status"] == "fixed"
+    else:
+        assert response.status_code in (200, 400)
+        if response.status_code == 200:
+            assert response.json()["delta"]["fixed"] == []
+            assert response.json()["delta"]["not_rechecked"] == [f["id"]]
+        else:
+            assert saved == before, "rejected results must not mutate persistence"
+        assert saved["pins"][0]["status"] == "open"
+        repaired = client.post(P + "/audit", json={"result": base})
+        assert repaired.json()["delta"]["fixed"] == [f["id"]]
 
 
 def test_store_empty(client):

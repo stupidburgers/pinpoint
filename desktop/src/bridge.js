@@ -139,27 +139,74 @@ export function createRateLimiter(opts) {
 }
 
 // ----- delta (mirror of the Python rule, used in desktop-only mode and as UI fallback) -----
-export function localDelta(prev, cur, seenIds) {
+// Only completed reporting can prove absence; never infer scope from findings or requested rules.
+export function usableFindings(findings) {
+  return Array.isArray(findings) && findings.every(f => f && typeof f === 'object' && !Array.isArray(f) && typeof f.id === 'string' && f.id.trim())
+}
+
+export function auditCoverage(res) {
+  if (!res || !usableFindings(res.findings)) return []
+  const errors = Object.prototype.hasOwnProperty.call(res, 'errors') ? res.errors : []
+  const limits = Object.prototype.hasOwnProperty.call(res, 'limits') ? res.limits : []
+  if (!Array.isArray(errors) || !Array.isArray(limits)) return []
+  if (limits.some(x => typeof x !== 'string' || !x.trim()) || res.truncated || limits.some(x => /truncat/i.test(x))) return []
+  if (errors.some(e => !e || typeof e !== 'object' || Array.isArray(e) || typeof e.rule !== 'string' || !e.rule.trim() || e.rule === 'engine')) return []
+  const errored = new Set(errors.map(e => e.rule))
+  let covered = []
+  if (Object.prototype.hasOwnProperty.call(res, 'rules_covered')) {
+    if (!Array.isArray(res.rules_covered) || !res.rules_covered.every(r => typeof r === 'string' && r)) return []
+    covered = res.rules_covered
+  } else {
+    const checked = res.stats && res.stats.checked
+    if (checked && typeof checked === 'object' && !Array.isArray(checked)) {
+      covered = Object.keys(checked).filter(r => r && typeof checked[r] === 'number' && Number.isFinite(checked[r]) && checked[r] >= 0)
+    }
+  }
+  return covered.filter(r => !errored.has(r))
+}
+
+export function localDelta(prev, cur, seenIds, coveredRules) {
   if (!prev) return null
   const prevIds = new Set(prev.map(f => f.id))
   const seen = new Set(seenIds || [])
   prevIds.forEach(id => seen.add(id))
   const curIds = new Set(cur.map(f => f.id))
-  const fixed = [...prevIds].filter(id => !curIds.has(id))
+  const coveredSet = new Set(Array.isArray(coveredRules) && coveredRules.every(r => typeof r === 'string' && r) ? coveredRules : [])
+
+  const fixed = []
+  const notRechecked = []
+
+  for (const f of prev) {
+    const id = f && f.id
+    if (!id || curIds.has(id)) continue
+    const rule = (f && f.rule) || (typeof id === 'string' && id.includes('@') ? id.split('@')[0] : '')
+    if (!rule || !coveredSet.has(rule)) {
+      notRechecked.push(id)
+    } else {
+      fixed.push(id)
+    }
+  }
+
   const added = [...curIds].filter(id => !seen.has(id))
   const remaining = [...curIds].filter(id => prevIds.has(id)).length
-  return { fixed, new: added, remaining }
+  const out = { fixed, new: added, remaining }
+  out.not_rechecked = notRechecked
+  out.unresolved = notRechecked
+  return out
 }
 
 export function normalizeDelta(d) {
   if (!d || typeof d !== 'object') return null
   const arr = x => (Array.isArray(x) ? x.map(String) : [])
   if (!Array.isArray(d.fixed) && !Array.isArray(d.new)) return null
-  return {
+  const out = {
     prev_score: typeof d.prev_score === 'number' ? d.prev_score : null,
     fixed: arr(d.fixed), new: arr(d.new),
     remaining: typeof d.remaining === 'number' ? d.remaining : Array.isArray(d.remaining) ? d.remaining.length : 0
   }
+  if (Array.isArray(d.not_rechecked)) out.not_rechecked = arr(d.not_rechecked)
+  if (Array.isArray(d.unresolved)) out.unresolved = arr(d.unresolved)
+  return out
 }
 
 export function scoreToast(prevScore, score, fixedCount) {
