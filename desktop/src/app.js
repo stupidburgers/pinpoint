@@ -195,7 +195,7 @@ async function doAudit({ source, args, deliver }) {
     const prev = await previousFor(key)
     const opts = buildAuditOpts(a, prefs(), prev.dismissed.map(f => f.id))
     const res = (await callApi('audit', [opts])).v
-    if (!res || !Array.isArray(res.findings)) throw new Error('engine returned no result')
+    if (!res || !usableFindings(res.findings)) throw new Error('engine returned no usable findings report')
     if (deliver) await deliver(res)
 
     // diff: python store answers for user/auto audits; local mirror otherwise (agent audits are stored by the tool)

@@ -22,10 +22,10 @@ function harness() {
       if (method === 'render') rendered = args;
       return {v:method==='audit'?incoming:method==='probe'?{docVersion:1}:{lost:[]}};
     };
-    globalThis.audit = async function(result) {
-      incoming = {url:'https://proof.invalid/', score:100, findings:[], ...result};
+    globalThis.audit = async function(result, raw = false) {
+      incoming = raw ? result : {url:'https://proof.invalid/', score:100, findings:[], ...result};
       const out = await doAudit({source:'agent'});
-      if (!out.ok) throw new Error(JSON.stringify(out));
+      if (!out.ok && !raw) throw new Error(JSON.stringify(out));
       const rows = [];
       function walk(x) {
         if (Array.isArray(x)) return x.forEach(walk);
@@ -39,9 +39,27 @@ function harness() {
     };
     globalThis.reload = () => { M.mem = {}; setUi(initialUi()); setUi({py:'off'}); };
   `, ctx)
-  return { audit: async result => JSON.parse(JSON.stringify(await ctx.audit(result))), reload: ctx.reload }
+  return { audit: async (result, raw = false) => JSON.parse(JSON.stringify(await ctx.audit(result, raw))), reload: ctx.reload }
 }
 const f = { id: 'a11y.control-name@412214a1', rule: 'a11y.control-name', sev: 'high' }
+const resultCases = JSON.parse(fs.readFileSync(new URL('tests/shared/audit_result_cases.json', root), 'utf8'))
+for (const c of resultCases) test('doAudit raw result boundary: ' + c.name, async () => {
+  const ctx = harness()
+  await ctx.audit({ findings: [f], rules_covered: [f.rule] })
+  const incoming = {url:'https://proof.invalid/', score:100, findings:[], rules_covered:[f.rule], ...c.patch}
+  for (const field of c.omit || []) delete incoming[field]
+  const result = await ctx.audit(incoming, true)
+  if (c.fixed) {
+    assert.equal(result.out.ok, true)
+    assert.deepEqual(result.out.delta.fixed, [f.id])
+  } else {
+    if (result.out.ok) assert.deepEqual(result.out.delta.fixed, [])
+    assert.deepEqual(result.prior.findings.map(x => x.id), [f.id])
+    assert.deepEqual(result.stored.findings.map(x => x.id), [f.id])
+    const repair = await ctx.audit({ rules_covered: [f.rule] })
+    assert.deepEqual(repair.out.delta.fixed, [f.id])
+  }
+})
 
 test('three audits retain unresolved pins in memory, storage and presentation until measured repair', async () => {
   const ctx = harness()

@@ -151,6 +151,17 @@ test('localDelta: missing or malformed coverage is not evidence of repair', () =
   }
 })
 
+const resultCases = JSON.parse(fs.readFileSync(new URL('../shared/audit_result_cases.json', import.meta.url), 'utf8'))
+for (const c of resultCases) test('raw result coverage boundary: ' + c.name, () => {
+  const f = { id: 'a11y.control-name@412214a1', rule: 'a11y.control-name' }
+  const res = { findings: [], rules_covered: [f.rule], ...c.patch }
+  for (const field of c.omit || []) delete res[field]
+  const current = Array.isArray(res.findings) ? res.findings.filter(x => x && typeof x.id === 'string' && x.id.trim()) : []
+  const d = B.localDelta([f], current, [], B.auditCoverage(res))
+  assert.deepEqual(d.fixed, c.fixed ? [f.id] : [])
+  if (!c.fixed) assert.deepEqual(d.not_rechecked, [f.id])
+})
+
 test('normalizeDelta accepts the python shape and rejects junk', () => {
   assert.deepEqual(B.normalizeDelta({ prev_score: 40, fixed: ['a'], new: [], remaining: 5 }), { prev_score: 40, fixed: ['a'], new: [], remaining: 5 })
   assert.equal(B.normalizeDelta(null), null)

@@ -104,14 +104,21 @@ def _extract_coverage(result):
     Requested rules/findings are not execution evidence. Legacy snapshots without
     checked metadata remain readable, but cannot close an existing open pin.
     """
-    errors = result.get("errors") or []
-    limits = result.get("limits") or []
+    # Only absent optional metadata defaults to empty. Explicit null/false/{},
+    # or unusable entries, must not be normalized into evidence of success.
+    errors = result.get("errors", [])
+    limits = result.get("limits", [])
     if not isinstance(errors, list) or not isinstance(limits, list):
         return set()
-    if result.get("truncated") or any("truncat" in str(x).lower() for x in limits):
+    if any(not isinstance(e, dict) or not isinstance(e.get("rule"), str)
+           or not e["rule"].strip() for e in errors):
         return set()
-    errored = {e.get("rule") for e in errors if isinstance(e, dict)}
-    if "engine" in errored or any(not isinstance(e, dict) or not e.get("rule") for e in errors):
+    if any(not isinstance(x, str) or not x.strip() for x in limits):
+        return set()
+    if result.get("truncated") or any("truncat" in x.lower() for x in limits):
+        return set()
+    errored = {e["rule"] for e in errors}
+    if "engine" in errored:
         return set()
     if "rules_covered" in result:
         rc = result["rules_covered"]
@@ -149,7 +156,13 @@ def record_audit(result, source="user"):
         url = clean_text(result.get("url"), 500)
         key = url_key(url)
         raw = result.get("findings")
-        findings = [clean_finding(f) for f in raw if isinstance(f, dict) and f.get("id")] if isinstance(raw, list) else []
+        # Reject unusable reports before opening the store: dropping bad entries
+        # (or treating a missing report as []) cannot establish finding absence.
+        if not isinstance(raw, list) or any(
+                not isinstance(f, dict) or not isinstance(f.get("id"), str)
+                or not f["id"].strip() for f in raw):
+            return _empty_delta_result(url, key)
+        findings = [clean_finding(f) for f in raw]
         if not key:
             return {**_empty_delta_result(url, key), "findings": findings}
         score = result.get("score")
