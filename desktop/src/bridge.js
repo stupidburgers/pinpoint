@@ -21,7 +21,7 @@ export function mapExecError(err) {
   if (m.includes('not allowed')) code = 'consent_denied'
   else if (m.includes('no preview page') || m.includes('no preview')) code = 'no_preview'
   else if (m.includes('changed origin') || m.includes('origin changed') || m.includes('navigat')) code = 'navigated'
-  else if (m.includes('web origin') || m.includes('about:blank') || m.includes('data:') || m.includes('file:') || m.includes('only http') || m.includes('non-web')) code = 'origin_blocked'
+  else if (m.includes('web origin') || m.includes('only on a web page') || m.includes('http or https') || m.includes('about:blank') || m.includes('data:') || m.includes('file:') || m.includes('only http') || m.includes('non-web')) code = 'origin_blocked'
   else if (m.includes('net::') || m.includes('unreachable') || m.includes('err_') || m.includes('timed out')) code = 'page_unreachable'
   return { code, message: cleanText(raw, 240) || 'Unknown error' }
 }
