@@ -6,7 +6,8 @@ Audit results add `rules_covered: string[]`: rules for which execution and compl
 
 At both persistence and Desktop delta boundaries:
 
-- An absent old open finding becomes fixed only if its rule has usable execution coverage.
+- An absent old open finding becomes fixed only if its rule has usable execution coverage and the result has a usable findings array (including a valid empty array). Missing/non-array findings or entries without a nonblank string ID are rejected before persistent-store or Desktop saved-state mutation; invalid entries are never silently dropped to establish absence.
+- Optional `errors` and `limits` default to empty arrays only when absent. Explicit nulls, non-array containers, error entries without nonblank string rules, or non-string/blank limit entries invalidate coverage. Such reports retain absent old pins as not rechecked rather than interpreting malformed metadata as successful execution.
 - Missing/malformed coverage, an unexecuted rule, a matching rule error, engine-global error, or truncated finding output cannot establish absence. The old pin stays open and its ID appears in additive `delta.not_rechecked` and `delta.unresolved` arrays.
 - Legacy incoming results can use a valid numeric `stats.checked` map (after excluding errors); neither requested `rules` nor the rules of returned findings establish coverage. An explicitly supplied invalid `rules_covered` is not repaired by falling back to another field.
 - Old persisted finding rows need no migration: the finding's rule, or its stable ID prefix, identifies the rule to recheck. Unknown incoming scope remains conservative.

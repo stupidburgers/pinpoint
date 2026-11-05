@@ -149,10 +149,17 @@ function createRateLimiter(opts) {
 
 // ----- delta (mirror of the Python rule, used in desktop-only mode and as UI fallback) -----
 // Only completed reporting can prove absence; never infer scope from findings or requested rules.
+function usableFindings(findings) {
+  return Array.isArray(findings) && findings.every(f => f && typeof f === 'object' && !Array.isArray(f) && typeof f.id === 'string' && f.id.trim())
+}
+
 function auditCoverage(res) {
-  const errors = res.errors || [], limits = res.limits || []
-  if (!Array.isArray(errors) || !Array.isArray(limits) || res.truncated || limits.some(x => /truncat/i.test(String(x)))) return []
-  if (errors.some(e => !e || !e.rule || e.rule === 'engine')) return []
+  if (!res || !usableFindings(res.findings)) return []
+  const errors = Object.prototype.hasOwnProperty.call(res, 'errors') ? res.errors : []
+  const limits = Object.prototype.hasOwnProperty.call(res, 'limits') ? res.limits : []
+  if (!Array.isArray(errors) || !Array.isArray(limits)) return []
+  if (limits.some(x => typeof x !== 'string' || !x.trim()) || res.truncated || limits.some(x => /truncat/i.test(x))) return []
+  if (errors.some(e => !e || typeof e !== 'object' || Array.isArray(e) || typeof e.rule !== 'string' || !e.rule.trim() || e.rule === 'engine')) return []
   const errored = new Set(errors.map(e => e.rule))
   let covered = []
   if (Object.prototype.hasOwnProperty.call(res, 'rules_covered')) {
@@ -438,7 +445,7 @@ async function doAudit({ source, args, deliver }) {
     const prev = await previousFor(key)
     const opts = buildAuditOpts(a, prefs(), prev.dismissed.map(f => f.id))
     const res = (await callApi('audit', [opts])).v
-    if (!res || !Array.isArray(res.findings)) throw new Error('engine returned no result')
+    if (!res || !usableFindings(res.findings)) throw new Error('engine returned no usable findings report')
     if (deliver) await deliver(res)
 
     // diff: python store answers for user/auto audits; local mirror otherwise (agent audits are stored by the tool)
