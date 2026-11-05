@@ -1045,7 +1045,16 @@ function pinpointEngine(config) {
    res.errors.push({ rule: 'engine', message: clip(sanitize(e && e.message), 120) });
   }
   res.stats.ms = Math.round(((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0) * 10) / 10;
-  if (X) { res.stats.checked = X.checked; res.stats.skipped = X.skipped; res.limits = X.limits.slice(); }
+  if (X) {
+   res.stats.checked = X.checked; res.stats.skipped = X.skipped; res.limits = X.limits.slice();
+   var erroredRules = {};
+   (res.errors || []).forEach(function(e) { if (e && e.rule) erroredRules[e.rule] = 1; });
+   var covered = [];
+   for (var k in X.checked) {
+    if (Object.prototype.hasOwnProperty.call(X.checked, k) && !erroredRules[k]) covered.push(k);
+   }
+   res.rules_covered = covered;
+  }
   X = null;
   dirty = false;
   lastAudit = res;
