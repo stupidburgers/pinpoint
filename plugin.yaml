@@ -1,0 +1,20 @@
+name: pinpoint
+version: "0.1.0"
+description: "Measure the live page in the Hermes Desktop Browser pane, pin findings on the real elements, send a pin to the agent, and verify the fix on reload."
+author: stupidburgers
+license: MIT
+homepage: https://github.com/stupidburgers/pinpoint
+kind: standalone
+manifest_version: 2
+api_version: 1
+requires_hermes: ">=0.22.7"
+platforms: [windows, macos, linux]
+provides_tools: [pinpoint_audit, pinpoint_pins]
+provides_hooks: []
+provides_middleware: []
+requires_env: []
+capabilities: []
+config_schema:
+  audit_timeout_s: {type: int, default: 90, label: "Audit wait (s)", description: "How long pinpoint_audit waits for the Desktop (first use waits for your consent click)."}
+  ack_timeout_s:   {type: int, default: 4,  label: "Desktop ack wait (s)", description: "How long pinpoint_audit waits for a Desktop window to claim the request before reporting desktop_unavailable."}
+  max_findings:    {type: int, default: 20, label: "Max findings returned", description: "Cap on findings returned to the model per audit."}
