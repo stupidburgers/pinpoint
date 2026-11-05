@@ -1,0 +1,20 @@
+--- a/styles.css
++++ b/styles.css
+@@ -59,7 +59,7 @@
+ .hero h1 { font-size: clamp(2.75rem, 6.2vw, 5.25rem); line-height: 1.02; font-weight: 500; text-wrap: balance; overflow-wrap: break-word; min-width: 0; }
+ .hero-sub { margin-top: 28px; max-width: 34em; font-size: 1.1875rem; line-height: 1.55; }
+ /* FLAW 1: light grey on cream, about 1.9:1 */
+-.hero-sub { color: #b8ad9f; }
++.hero-sub { color: var(--ink-soft); }
+ .actions { display: flex; align-items: center; gap: 2px; margin-top: 36px; }
+ /* FLAW 3a: an 18 x 18 px icon button, 2 px from the primary button */
+ .play-btn { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; border: 1.5px solid var(--ink); border-radius: 50%; background: transparent; color: var(--ink); cursor: pointer; }
+@@ -117,7 +117,7 @@
+ .plan-feature .price, .plan-feature .plan-desc { color: #d9c9b0; }
+ .price-note { font-size: 0.875rem; margin-bottom: 14px; }
+ /* FLAW 2: 3.2:1 normal text on the plain card (fine print grey) */
+-.plan .price-note { color: #978a7b; }
++.plan .price-note { color: #6b5a4c; }
+ .plan-feature .price-note { color: #bfb3a4; }
+ 
+ .quote { padding-block: clamp(64px, 9vw, 128px); }

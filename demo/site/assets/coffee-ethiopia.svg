@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480">
+<rect width="640" height="480" fill="#e7c9a1"/>
+<circle cx="320" cy="240" r="210" fill="#efd7b5"/>
+<g transform="translate(215 266) rotate(109)"><ellipse rx="25.2" ry="40.7" fill="#5d3620"/><path d="M0 -36.6 C 10.2 -12.2, -10.2 12.2, 0 36.6" stroke="#1a0d06" stroke-width="3.7" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(352 281) rotate(84)"><ellipse rx="31.2" ry="50.4" fill="#5d3620"/><path d="M0 -45.3 C 12.6 -15.1, -12.6 15.1, 0 45.3" stroke="#1a0d06" stroke-width="4.5" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 379) rotate(151)"><ellipse rx="26.3" ry="42.5" fill="#4d2c19"/><path d="M0 -38.2 C 10.6 -12.7, -10.6 12.7, 0 38.2" stroke="#1a0d06" stroke-width="3.8" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(279 345) rotate(27)"><ellipse rx="23.7" ry="38.2" fill="#5d3620"/><path d="M0 -34.4 C 9.5 -11.5, -9.5 11.5, 0 34.4" stroke="#1a0d06" stroke-width="3.4" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(276 134) rotate(29)"><ellipse rx="29.8" ry="48.0" fill="#5d3620"/><path d="M0 -43.2 C 12.0 -14.4, -12.0 14.4, 0 43.2" stroke="#1a0d06" stroke-width="4.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(137 325) rotate(48)"><ellipse rx="30.3" ry="48.8" fill="#5d3620"/><path d="M0 -43.9 C 12.2 -14.6, -12.2 14.6, 0 43.9" stroke="#1a0d06" stroke-width="4.4" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(408 350) rotate(166)"><ellipse rx="29.0" ry="46.9" fill="#4d2c19"/><path d="M0 -42.2 C 11.7 -14.1, -11.7 14.1, 0 42.2" stroke="#1a0d06" stroke-width="4.2" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(453 274) rotate(73)"><ellipse rx="27.0" ry="43.6" fill="#3a2013"/><path d="M0 -39.3 C 10.9 -13.1, -10.9 13.1, 0 39.3" stroke="#1a0d06" stroke-width="3.9" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(516 152) rotate(74)"><ellipse rx="30.0" ry="48.4" fill="#3a2013"/><path d="M0 -43.6 C 12.1 -14.5, -12.1 14.5, 0 43.6" stroke="#1a0d06" stroke-width="4.4" fill="none" stroke-linecap="round"/></g>
+</svg>

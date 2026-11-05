@@ -1,0 +1,138 @@
+{
+ "steps": [
+  {
+   "name": "01-contrast",
+   "title": "Raise the two low-contrast text colours to >= 4.5:1"
+  },
+  {
+   "name": "02-css-layout",
+   "title": "Targets 44 px, readable type, focus ring, no horizontal overflow"
+  },
+  {
+   "name": "03-html",
+   "title": "lang, alt text, labels, accessible names, heading order"
+  }
+ ],
+ "edits": [
+  {
+   "step": "01-contrast",
+   "path": "styles.css",
+   "old_string": "color: #b8ad9f; }",
+   "new_string": "color: var(--ink-soft); }"
+  },
+  {
+   "step": "01-contrast",
+   "path": "styles.css",
+   "old_string": ".plan .price-note { color: #978a7b; }",
+   "new_string": ".plan .price-note { color: #6b5a4c; }"
+  },
+  {
+   "step": "02-css-layout",
+   "path": "styles.css",
+   "old_string": "/* FLAW 12: removes the focus ring with no replacement */\n.nav a { outline: none; }\n",
+   "new_string": ""
+  },
+  {
+   "step": "02-css-layout",
+   "path": "styles.css",
+   "old_string": "width: 18px; height: 18px; padding: 0;",
+   "new_string": "width: 44px; height: 44px; padding: 0;"
+  },
+  {
+   "step": "02-css-layout",
+   "path": "styles.css",
+   "old_string": "gap: 2px; margin-top: 36px; }",
+   "new_string": "gap: 12px; margin-top: 36px; }"
+  },
+  {
+   "step": "02-css-layout",
+   "path": "styles.css",
+   "old_string": ".fav { margin-left: 2px; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;",
+   "new_string": ".fav { margin-left: 12px; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px;"
+  },
+  {
+   "step": "02-css-layout",
+   "path": "styles.css",
+   "old_string": ".tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 40px; }",
+   "new_string": ".tag-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 40px; }"
+  },
+  {
+   "step": "02-css-layout",
+   "path": "styles.css",
+   "old_string": "height: 20px; padding: 0 10px; border: 1px solid var(--ink-soft); border-radius: 10px;",
+   "new_string": "min-height: 44px; padding: 0 18px; border: 1px solid var(--ink-soft); border-radius: 22px;"
+  },
+  {
+   "step": "02-css-layout",
+   "path": "styles.css",
+   "old_string": ".tight p { line-height: 1; }",
+   "new_string": ".tight p { line-height: 1.6; }"
+  },
+  {
+   "step": "02-css-layout",
+   "path": "styles.css",
+   "old_string": ".fine { font-size: 10.5px; }",
+   "new_string": ".fine { font-size: 0.8125rem; }"
+  },
+  {
+   "step": "02-css-layout",
+   "path": "styles.css",
+   "old_string": "width: 1600px; padding: 18px 40px;",
+   "new_string": "flex-wrap: wrap; gap: 8px 24px; max-width: 100%; padding: 18px var(--gutter);"
+  },
+  {
+   "step": "03-html",
+   "path": "index.html",
+   "old_string": "<html id=\"top\">",
+   "new_string": "<html id=\"top\" lang=\"en\">"
+  },
+  {
+   "step": "03-html",
+   "path": "index.html",
+   "old_string": "<button id=\"menu-btn\" class=\"icon-btn\" type=\"button\">",
+   "new_string": "<button id=\"menu-btn\" class=\"icon-btn\" type=\"button\" aria-label=\"Open menu\">"
+  },
+  {
+   "step": "03-html",
+   "path": "index.html",
+   "old_string": "<img id=\"hero-img\" src=\"assets/hero.svg\" width=\"960\" height=\"1080\">",
+   "new_string": "<img id=\"hero-img\" src=\"assets/hero.svg\" width=\"960\" height=\"1080\" alt=\"A white cup of black coffee steaming on a table covered in roasted beans\">"
+  },
+  {
+   "step": "03-html",
+   "path": "index.html",
+   "old_string": "alt=\"IMG_2041.jpg\"",
+   "new_string": "alt=\"Ines, Tomas and Priya standing behind the roaster\""
+  },
+  {
+   "step": "03-html",
+   "path": "index.html",
+   "old_string": "<input id=\"email\" name=\"email\" type=\"email\" placeholder=\"Email address\" autocomplete=\"email\">",
+   "new_string": "<label for=\"email\">Email address</label>\n        <input id=\"email\" name=\"email\" type=\"email\" placeholder=\"you@example.com\" autocomplete=\"email\">"
+  },
+  {
+   "step": "03-html",
+   "path": "index.html",
+   "old_string": "<h4 id=\"plan-starter\">Starter</h4>",
+   "new_string": "<h3 id=\"plan-starter\">Starter</h3>"
+  },
+  {
+   "step": "03-html",
+   "path": "index.html",
+   "old_string": "<h4>Regular</h4>",
+   "new_string": "<h3>Regular</h3>"
+  },
+  {
+   "step": "03-html",
+   "path": "index.html",
+   "old_string": "<h4>Household</h4>",
+   "new_string": "<h3>Household</h3>"
+  },
+  {
+   "step": "03-html",
+   "path": "styles.css",
+   "old_string": ".plan h4 { font-size: 1.75rem; }",
+   "new_string": ".plan h3 { font-size: 1.75rem; }"
+  }
+ ]
+}

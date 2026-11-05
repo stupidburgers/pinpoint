@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480">
+<rect width="640" height="480" fill="#d9a08a"/>
+<path d="M0 360 C160 280 300 400 640 300 V480 H0Z" fill="#c98870"/><circle cx="480" cy="120" r="80" fill="#e5b9a4"/>
+<g transform="translate(391 326) rotate(92)"><ellipse rx="26.9" ry="43.4" fill="#40220f"/><path d="M0 -39.0 C 10.8 -13.0, -10.8 13.0, 0 39.0" stroke="#1a0d06" stroke-width="3.9" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(259 262) rotate(107)"><ellipse rx="27.6" ry="44.5" fill="#2d160c"/><path d="M0 -40.1 C 11.1 -13.4, -11.1 13.4, 0 40.1" stroke="#1a0d06" stroke-width="4.0" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(163 211) rotate(102)"><ellipse rx="24.6" ry="39.6" fill="#2d160c"/><path d="M0 -35.6 C 9.9 -11.9, -9.9 11.9, 0 35.6" stroke="#1a0d06" stroke-width="3.6" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(472 360) rotate(82)"><ellipse rx="22.4" ry="36.1" fill="#52301a"/><path d="M0 -32.4 C 9.0 -10.8, -9.0 10.8, 0 32.4" stroke="#1a0d06" stroke-width="3.2" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(352 236) rotate(79)"><ellipse rx="30.6" ry="49.4" fill="#40220f"/><path d="M0 -44.4 C 12.3 -14.8, -12.3 14.8, 0 44.4" stroke="#1a0d06" stroke-width="4.4" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(351 157) rotate(34)"><ellipse rx="23.4" ry="37.7" fill="#2d160c"/><path d="M0 -34.0 C 9.4 -11.3, -9.4 11.3, 0 34.0" stroke="#1a0d06" stroke-width="3.4" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(268 354) rotate(160)"><ellipse rx="30.7" ry="49.6" fill="#2d160c"/><path d="M0 -44.6 C 12.4 -14.9, -12.4 14.9, 0 44.6" stroke="#1a0d06" stroke-width="4.5" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(426 149) rotate(174)"><ellipse rx="24.6" ry="39.6" fill="#40220f"/><path d="M0 -35.6 C 9.9 -11.9, -9.9 11.9, 0 35.6" stroke="#1a0d06" stroke-width="3.6" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(230 151) rotate(51)"><ellipse rx="23.0" ry="37.1" fill="#40220f"/><path d="M0 -33.4 C 9.3 -11.1, -9.3 11.1, 0 33.4" stroke="#1a0d06" stroke-width="3.3" fill="none" stroke-linecap="round"/></g>
+</svg>

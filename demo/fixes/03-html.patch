@@ -1,0 +1,82 @@
+--- a/index.html
++++ b/index.html
+@@ -1,5 +1,5 @@
+ <!doctype html>
+-<html id="top">
++<html id="top" lang="en">
+ <head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+@@ -18,7 +18,7 @@
+       <a id="nav-pricing" href="#pricing">Pricing</a>
+       <a id="nav-team" href="#team">Roasters</a>
+     </nav>
+-    <button id="menu-btn" class="icon-btn" type="button">
++    <button id="menu-btn" class="icon-btn" type="button" aria-label="Open menu">
+       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+     </button>
+   </div>
+@@ -38,7 +38,7 @@
+       </div>
+     </div>
+     <figure class="hero-art">
+-      <img id="hero-img" src="assets/hero.svg" width="960" height="1080">
++      <img id="hero-img" src="assets/hero.svg" width="960" height="1080" alt="A white cup of black coffee steaming on a table covered in roasted beans">
+     </figure>
+   </div>
+ </section>
+@@ -102,7 +102,7 @@
+ <section id="team" class="team">
+   <div class="wrap team-grid">
+     <figure>
+-      <img id="team-photo" src="assets/team.svg" width="800" height="600" alt="IMG_2041.jpg">
++      <img id="team-photo" src="assets/team.svg" width="800" height="600" alt="Ines, Tomas and Priya standing behind the roaster">
+     </figure>
+     <div class="tight">
+       <h2 class="section-title">Three people, one drum</h2>
+@@ -119,21 +119,21 @@
+     </div>
+     <div class="plans">
+       <div class="plan">
+-        <h4 id="plan-starter">Starter</h4>
++        <h3 id="plan-starter">Starter</h3>
+         <p class="price"><span class="amount">$14</span> a month</p>
+         <p class="plan-desc">One 250 g bag, roasted for filter or espresso.</p>
+         <p class="price-note" id="price-note-1">Billed monthly, $14.00 per delivery.</p>
+         <a class="btn btn-ghost" href="#join">Choose Starter</a>
+       </div>
+       <div class="plan plan-feature">
+-        <h4>Regular</h4>
++        <h3>Regular</h3>
+         <p class="price"><span class="amount">$26</span> a month</p>
+         <p class="plan-desc">Two 250 g bags, one of them always something new.</p>
+         <p class="price-note" id="price-note-2">Billed monthly, $26.00 per delivery.</p>
+         <a class="btn btn-primary-inv" href="#join">Choose Regular</a>
+       </div>
+       <div class="plan">
+-        <h4>Household</h4>
++        <h3>Household</h3>
+         <p class="price"><span class="amount">$48</span> a month</p>
+         <p class="plan-desc">Four 250 g bags, and the filter papers are on us.</p>
+         <p class="price-note" id="price-note-3">Billed monthly, $48.00 per delivery.</p>
+@@ -164,7 +164,8 @@
+         <input id="ok-name" name="name" type="text" autocomplete="given-name">
+       </div>
+       <div class="field">
+-        <input id="email" name="email" type="email" placeholder="Email address" autocomplete="email">
++        <label for="email">Email address</label>
++        <input id="email" name="email" type="email" placeholder="you@example.com" autocomplete="email">
+       </div>
+       <button id="ok-subscribe" class="btn btn-primary" type="submit">Tell me</button>
+     </form>
+--- a/styles.css
++++ b/styles.css
+@@ -105,7 +105,7 @@
+ .pricing { background: var(--card); border-block: 1px solid var(--rule); padding-block: clamp(56px, 8vw, 112px); }
+ .plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(16px, 2.5vw, 32px); align-items: stretch; }
+ .plan { display: flex; flex-direction: column; gap: 10px; padding: 32px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card); }
+-.plan h4 { font-size: 1.75rem; }
++.plan h3 { font-size: 1.75rem; }
+ .price { color: var(--ink-soft); }
+ .amount { font: 500 3rem/1 var(--serif); color: var(--ink); margin-right: 4px; }
+ .plan-desc { color: var(--ink-soft); margin-bottom: 8px; }
