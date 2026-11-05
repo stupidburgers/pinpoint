@@ -232,3 +232,9 @@ test('groupBySeverity orders by severity then pin number', () => {
 test('errorCopy covers every request code', () => {
   for (const c of B.REQUEST_CODES) assert.ok(B.errorCopy(c).title && B.errorCopy(c).body, c)
 })
+
+test('buildAuditOpts forwards inspect_selector from the agent request (either spelling)', () => {
+  assert.equal(B.buildAuditOpts({ inspect_selector: '#hero' }, {}, []).inspectSelector, '#hero')
+  assert.equal(B.buildAuditOpts({ inspectSelector: '.a' }, {}, []).inspectSelector, '.a')
+  assert.equal(B.buildAuditOpts({ inspect_selector: '  ' }, {}, []).inspectSelector, undefined)
+})
