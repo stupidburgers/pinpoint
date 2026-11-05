@@ -175,8 +175,7 @@ def format_receipt(prev_score, score, fixed, gone, remaining, not_rechecked):
     lines.append(f"- gone (element no longer on the page, NOT proof of a fix): {len(gone)}")
     lines += [f"  - `{i}`" for i in gone[:10]]
     lines.append(f"- still open: {remaining}; not re-checked: {len(not_rechecked)}")
-    return "
-".join(lines)
+    return "\n".join(lines)
 
 
 def record_audit(result, source="user"):
