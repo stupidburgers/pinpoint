@@ -163,7 +163,7 @@ for (const c of resultCases) test('raw result coverage boundary: ' + c.name, () 
 })
 
 test('normalizeDelta accepts the python shape and rejects junk', () => {
-  assert.deepEqual(B.normalizeDelta({ prev_score: 40, fixed: ['a'], new: [], remaining: 5 }), { prev_score: 40, fixed: ['a'], new: [], remaining: 5 })
+  assert.deepEqual(B.normalizeDelta({ prev_score: 40, fixed: ['a'], gone: [], new: [], remaining: 5 }), { prev_score: 40, fixed: ['a'], gone: [], new: [], remaining: 5 })
   assert.equal(B.normalizeDelta(null), null)
   assert.equal(B.normalizeDelta({ x: 1 }), null)
 })
