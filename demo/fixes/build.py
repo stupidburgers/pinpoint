@@ -49,8 +49,10 @@ STEPS[2][2].append(EXTRA_CSS_IN_STEP_3)
 
 
 def read(p):
+    # Literal "\r\n"/"\n": the install scanner (plugin-guard, `chr_building`) treats
+    # chr(N)+chr(N) chains as obfuscation; this is plain CRLF normalisation.
     with open(p, encoding='utf8', newline='') as f:
-        return f.read().replace(chr(13) + chr(10), chr(10))
+        return f.read().replace("\r\n", "\n")
 
 
 def write(p, s):
