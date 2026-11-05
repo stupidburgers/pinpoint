@@ -22,6 +22,14 @@ _PROMPT_DELIMS = re.compile(
 )
 
 
+# Neutralize potential LLM prompt-breakout delimiters in page-originated strings
+_PROMPT_DELIMS = re.compile(
+    r'<\s*/?\s*(?:system|assistant|user|hermes|control|prompt)[^>]*>|'
+    r'\[\s*/?\s*(?:USER_MESSAGE|SYSTEM|ASSISTANT|OUT-OF-BAND)[^\]]*\]|'
+    r'<!--[\s\S]*?-->',
+    re.IGNORECASE,
+)
+
 def clean_text(s, cap):
     """Strip control/bidi chars, delimiters, collapse whitespace, hard-cap to `cap` chars."""
     if isinstance(s, bool) or s is None:
