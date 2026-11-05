@@ -14,14 +14,23 @@ def dumps(obj):
     return json.dumps(obj, separators=(",", ":"), ensure_ascii=False, default=str)
 
 
+_PROMPT_DELIMS = re.compile(
+    r"<\s*/?\s*(?:system|assistant|user|hermes|control|prompt)[^>]*>|"
+    r"\[\s*/?\s*(?:USER_MESSAGE|SYSTEM|ASSISTANT|OUT-OF-BAND)[^\]]*\]|"
+    r"<!--[\s\S]*?-->",
+    re.IGNORECASE,
+)
+
+
 def clean_text(s, cap):
-    """Strip control/bidi chars, collapse whitespace, hard-cap to `cap` chars."""
+    """Strip control/bidi chars, delimiters, collapse whitespace, hard-cap to `cap` chars."""
     if isinstance(s, bool) or s is None:
         return ""
     if isinstance(s, (int, float)):
         s = str(s)
     if not isinstance(s, str):
         return ""
+    s = _PROMPT_DELIMS.sub(" ", s)
     s = _WS.sub(" ", _CTRL.sub("", s.replace("\t", " ").replace("\n", " ").replace("\r", " "))).strip()
     return s[: max(0, int(cap))]
 
