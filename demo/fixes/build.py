@@ -22,7 +22,7 @@ STEPS = [
         ('styles.css', '/* FLAW 12: removes the focus ring with no replacement */\n.nav a { outline: none; }\n', ''),
         ('styles.css', 'width: 18px; height: 18px; padding: 0;', 'width: 44px; height: 44px; padding: 0;'),
         ('styles.css', 'gap: 2px; margin-top: 36px; }', 'gap: 12px; margin-top: 36px; }'),
-        ('styles.css', '.fav { margin-left: 2px; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;',
+        ('styles.css', '.fav { margin-left: 1px; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;',
                        '.fav { margin-left: 12px; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px;'),
         ('styles.css', '.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 40px; }', '.tag-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 40px; }'),
         ('styles.css', 'height: 20px; padding: 0 10px; border: 1px solid var(--ink-soft); border-radius: 10px;', 'min-height: 44px; padding: 0 18px; border: 1px solid var(--ink-soft); border-radius: 22px;'),
