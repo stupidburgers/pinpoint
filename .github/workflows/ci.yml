@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: "24"
       - name: Install Python deps
-        run: pip install pytest playwright fastapi httpx pyyaml
+        run: python -m pip install pytest==8.4.2 playwright==1.64.1 fastapi==0.162.0 httpx==0.28.1 pyyaml==6.0.3
       - name: Install Chromium
         run: playwright install --with-deps chromium
         if: runner.os == 'Linux'
@@ -28,12 +28,56 @@ jobs:
         run: playwright install chromium
         if: runner.os != 'Linux'
       - name: Python and engine tests
-        run: pytest tests/py tests/engine -q
+        shell: bash
+        run: python -m pytest tests/py tests/engine -q --basetemp="$RUNNER_TEMP/pinpoint-pytest"
+      - name: Node bridge tests
+        run: node --test tests/build/bridge.test.mjs
       - name: Desktop build is up to date
         run: node scripts/build-desktop.mjs --check
       - name: Hygiene scan
         shell: bash
         run: bash scripts/hygiene.sh
-      # `hermes plugins validate .` needs the Hermes CLI, which this workflow
-      # does not install. scripts/freeze.sh runs it on a machine with Hermes,
-      # and tests/py/test_validate.py skips when the CLI is missing.
+
+  validate:
+    # Full-shipped-tree `hermes plugins validate`/`doctor`. The validator is
+    # platform-independent, so one Linux job gates it; the test matrix above
+    # keeps the OS coverage. tests/py/test_validate.py skips there when no
+    # `hermes` is on PATH — this job is where those tests actually run.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          # hermes-agent v0.22.7 declares requires-python >=3.11,<3.15 and its
+          # lock resolves for 3.14 ([tool.uv] environments); uv installs 3.14.
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.0"   # recipe verified end-to-end locally with this uv
+      - name: Install Hermes CLI at the requires_hermes floor tag
+        # PyPI hermes-agent lags (0.19.x < the >=0.22.7 floor in plugin.yaml)
+        # and a bare `pip install git+...@v0.22.7` hits an upstream transient
+        # pin conflict resolved only by [tool.uv] overrides, so install from
+        # the exact release tag with its own lockfile (tag b200f5bc, scanner
+        # plugin-guard-v12 — the same scanner the installer gates installs on).
+        # Sources live outside the plugin checkout, keeping the tree scan clean.
+        run: |
+          git clone --depth 1 --branch v0.22.7 https://github.com/NousResearch/hermes-agent.git "$RUNNER_TEMP/hermes-src"
+          test "$(git -C "$RUNNER_TEMP/hermes-src" rev-parse HEAD)" = b200f5bc60e31588ba2cb60e288029c4a54ba5fa
+          cd "$RUNNER_TEMP/hermes-src" && uv sync --locked
+          "$RUNNER_TEMP/hermes-src/.venv/bin/hermes" --version
+      - name: Validate the full shipped tree
+        # Whole checkout, docs/demo/tests included — no cherry-picked subset.
+        # HERMES_HOME is hermetic; the plugin declares no python deps, so
+        # --install-deps is exercised but installs nothing.
+        run: '"$RUNNER_TEMP/hermes-src/.venv/bin/hermes" plugins validate . --install-deps'
+        env:
+          HERMES_HOME: ${{ runner.temp }}/hermes-home-validate
+      - name: Doctor the full shipped tree
+        run: '"$RUNNER_TEMP/hermes-src/.venv/bin/hermes" plugins doctor . --ci'
+        env:
+          HERMES_HOME: ${{ runner.temp }}/hermes-home-doctor
+      - name: Validator harness tests (full tree + known-bad controls)
+        run: |
+          pip install pytest==8.4.2
+          PINPOINT_HERMES="$RUNNER_TEMP/hermes-src/.venv/bin/hermes" python -m pytest tests/py/test_validate.py -q --basetemp="$RUNNER_TEMP/pinpoint-validator-tests"
