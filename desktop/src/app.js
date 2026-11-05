@@ -151,6 +151,12 @@ function applyPins(findings, fixed, delta) {
   return { list: [...findings, ...fixed.filter(f => !findings.some(g => g.id === f.id))], statuses }
 }
 
+// Denied for this origin: stop touching the page and drop results that belong to a different site.
+function denied(m) {
+  M.active = false; C.storage.set('active', false)
+  setUi({ phase: 'error', error: m, result: null, fixed: [], lost: [], pinsShown: false, delta: null, prevScore: null })
+}
+
 // One audit at a time: user, auto and agent audits queue behind each other.
 function performAudit(o) {
   M.auditing++
@@ -237,7 +243,7 @@ async function doAudit({ source, args, deliver }) {
   } catch (e) {
     const m = e && e.engine ? { code: 'engine_error', message: cleanText(e.message, 200) } : mapExecError(e)
     log('audit FAILED', m)
-    if (m.code === 'consent_denied') { M.active = false; C.storage.set('active', false) }
+    if (m.code === 'consent_denied') { denied(m); return { ok: false, ...m } }
     setUi({ phase: 'error', error: m })
     return { ok: false, ...m }
   }
@@ -347,7 +353,7 @@ async function tick() {
   let r
   try { r = await callApi('probe', []) } catch (e) {
     const m = mapExecError(e)
-    if (m.code === 'consent_denied') { M.active = false; setUi({ phase: 'error', error: m }); return }
+    if (m.code === 'consent_denied') { denied(m); return }
     if (m.code === 'no_preview' || m.code === 'navigated') { M.skip = 2; return }
     log('probe err', m); M.skip = 4; return
   }
@@ -602,7 +608,7 @@ function Pane() {
   const body = []
   if (s.py === 'off') body.push(h(Banner, { key: 'py' }, h('b', null, 'Python half is off. '), 'Pins stay in this app and the agent can\u2019t see them. Run ', h('span', { className: 'pp-kbd' }, 'hermes plugins enable pinpoint'), ' to allow agent audits.'))
   if (s.paused) body.push(h(Banner, { key: 'pause', action: h('button', { type: 'button', className: 'pp-btn', onClick: () => { M.limiter.reset(); setUi({ paused: false }); void performAudit({ source: 'user' }) } }, 'Resume') }, h('b', null, 'Paused. '), 'The page is changing too fast to re-audit.'))
-  if (s.stale && s.phase !== 'running') body.push(h(Banner, { key: 'stale' }, h('b', null, 'Page changed. '), 'Press Audit to check this page.'))
+  if (s.stale && s.result && s.phase !== 'running') body.push(h(Banner, { key: 'stale' }, h('b', null, 'Page changed. '), 'Press Audit to check this page.'))
   if (s.cleared && s.phase !== 'running') body.push(h(Banner, { key: 'clr' }, h('b', null, 'Pins cleared. '), 'Auto re-audit is off until you press Audit.'))
 
   if (s.phase === 'running') {
