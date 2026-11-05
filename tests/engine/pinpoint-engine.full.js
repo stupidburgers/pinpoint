@@ -1099,8 +1099,8 @@ function pinpointEngine(config) {
    X.all = all;
    X.els = all;
    res.stats.elements = all.length;
-   res.presentAnchors = all.slice(0, 4000).map(anchorSig);
    res.presentComplete = all.length <= 4000;
+   res.presentAnchors = res.presentComplete ? all.map(anchorSig) : [];  // never ship an unusable, oversized list
    if (all.length > 5000) {
     var lo = X.sy - 2 * X.vh, hi = X.sy + 3 * X.vh;
     X.els = all.filter(function(e) { var r = rectOf(e); return r.y + r.h >= lo && r.y <= hi; });
