@@ -9,6 +9,7 @@ from ._sanitize import clean_selector, clean_text
 MAX_KEYS = 20
 MAX_PINS = 200
 MAX_AUDITS = 50
+MAX_AGE_SECONDS = 7 * 86400  # 7-day retention limit
 STATUSES = ("open", "fixed", "gone", "dismissed", "new")
 _DEFAULT_PORT = {"http": 80, "https": 443}
 _DROP_PARAMS = ("fbclid", "gclid")
@@ -291,6 +292,10 @@ def _prune(c, key, not_rechecked=()):
     for (k,) in c.execute("select distinct url_key from pins").fetchall():
         if k not in live:
             c.execute("delete from pins where url_key=?", (k,))
+    # Prune stale audit runs older than MAX_AGE_SECONDS (7 days)
+    cutoff = _now() - MAX_AGE_SECONDS
+    c.execute("delete from audits where t < ?", (cutoff,))
+    c.execute("delete from pins where last_seen < ?", (cutoff,))
 
 
 def _pin_row(r):

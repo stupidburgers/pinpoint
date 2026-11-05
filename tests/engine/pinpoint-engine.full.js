@@ -1463,6 +1463,7 @@ function clampN(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
   inspHudEl.appendChild(mk('div', 'ht', info.tag + ' · ' + info.selector + ' (' + info.rect.w + '×' + info.rect.h + ')'));
   inspHudEl.appendChild(mk('div', 'hm', 'pad ' + info.boxModel.padding + ' · mar ' + info.boxModel.margin + ' · ' + info.layout.display));
   inspHudEl.appendChild(mk('div', 'hm', info.typography.fontFamily + ' ' + info.typography.fontSize + '/' + info.typography.lineHeight + ' · ' + info.colors.fg + ' on ' + info.colors.bg + (info.colors.contrastRatio ? ' (' + info.colors.contrastRatio + ':1)' : '')));
+  inspHudEl.appendChild(mk('div', 'hm', '[Esc] Exit   [↑/↓] Parent/Child   [←/→] Sibling'));
   inspHudEl.hidden = false;
   var hw = inspHudEl.offsetWidth || 220, hh = inspHudEl.offsetHeight || 54;
   var hx = clampN(Math.round(r.left), 4, Math.max(4, vw - hw - 4));
