@@ -1,0 +1,31 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>cards</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{margin:0;padding:12px;font:15px/1.5 Arial,sans-serif;color:#1d1d1f;background:#fff}
+.grid{display:grid;grid-template-columns:repeat(2,340px);gap:12px}
+.card{border:1px solid #ddd;border-radius:8px;padding:12px;background:#fff}
+.card h2{font-size:17px;margin:0 0 6px}
+.card p{margin:0 0 8px}
+.btn{display:inline-block;width:44px;height:44px;border:1px solid #999;background:#eee;cursor:pointer;text-align:center;line-height:42px}
+.small-btn{width:16px;height:16px;padding:0;border:1px solid #bbb;line-height:1}
+input[type=text]{width:160px;height:30px;border:1px solid #888;padding:2px 6px}
+.pale{color:#c9c9c9}
+.icon{width:18px;height:18px;display:inline-block;background:#ccc}
+.tag{display:inline-block;width:20px;height:24px;padding:0;border:0;background:#eef;line-height:24px;text-align:center;margin-left:2px}
+</style></head><body>
+<h1>Catalog</h1>
+<div class="grid">
+<div class="card"><h2 id="ok-h1">Standard card</h2><p>Described, fully compliant.</p><a class="btn" id="ok-t1" href="#s1">Go</a></div>
+<div class="card"><h2 id="ok-h2">Pale hero</h2><p id="bad-c1" class="pale">Pale subtext that fails contrast.</p><a class="btn" id="ok-t2" href="#s2">Go</a></div>
+<div class="card"><h2 id="ok-h3">Tiny button card</h2><p>Read the notes below.</p><button class="small-btn" id="bad-t1" aria-label="Close"></button><button class="small-btn" aria-label="Min" style="margin-left:2px"></button></div>
+<div class="card"><h2 id="ok-h4">Photo card</h2><img id="bad-i1" width="60" height="60" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><img id="ok-i1" width="60" height="60" alt="Chart of sales" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></div>
+<div class="card"><h2 id="ok-h5">Signup form</h2><input id="bad-l1" type="text" placeholder="Email"><input id="ok-l1" type="text" aria-label="Coupon code"></div>
+<div class="card"><h2 id="ok-h6">Icon actions</h2><button id="bad-n1" style="width:44px;height:44px"><span class="icon"></span></button><button id="ok-n1" aria-label="Settings" style="width:44px;height:44px"><span class="icon"></span></button></div>
+<div class="card"><h2 id="ok-h7">Small print</h2><p id="bad-s1" style="font-size:9px">Restriction applies without notice whatsoever at any time.</p><p id="ok-s1" style="font-size:12px">Terms that remain readable.</p></div>
+<div class="card"><h2 id="ok-h8">Dense copy</h2><p id="bad-g1" style="line-height:1;width:200px">A paragraph squeezed to a line height that is far too tight to read comfortably across multiple lines.</p><p id="ok-g1" style="width:200px">A paragraph given comfortable spacing so the reader can track each line easily.</p></div>
+<div class="card"><h2 id="ok-h9">Wide table</h2><div id="bad-o1" style="width:1300px;height:14px;background:#f3f3f3">oversized</div></div>
+<div class="card"><h2 id="ok-h10">Filters</h2><div><button class="tag" id="ok-x1">A</button><button class="tag" id="bad-x1">B</button><button class="tag" id="bad-x2">C</button><button class="tag" id="ok-x2" style="margin-left:12px">D</button></div></div>
+<div class="card"><h2 id="ok-h11">Filename alt</h2><img id="bad-i2" width="60" height="60" alt="scan_0024.png" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></div>
+<div class="card"><h2 id="ok-h12">Label mismatch</h2><label for="nope">City</label><input id="bad-l2" type="text"></div>
+</div>
+</body></html>

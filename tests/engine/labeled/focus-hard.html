@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>focus hard</title>
+<style>
+.strip *{outline:none}
+.strip #ok-f1:focus-visible{box-shadow:0 0 0 2px #123}
+#bad-f2{outline:0 !important}
+.wrap *:focus-visible{box-shadow:0 0 0 2px #123}
+.btn2:focus{outline:none}
+.hov:hover{outline:none}
+#ok-f4{outline:none}
+#ok-f4:focus-visible{box-shadow:0 0 0 2px #123}
+</style></head><body>
+<div class="strip"><a id="bad-f1" href="#a">stripped by universal</a><button id="ok-f1">same rule but has replacement</button></div>
+<button id="bad-f2">important removal</button>
+<div class="wrap"><button id="ok-f1b">replacement present</button></div>
+<button id="bad-f3" class="btn2">class removal</button>
+<button id="ok-f3" class="hov">hover only removal</button>
+<button id="bad-f4" style="outline:none">inline removal</button>
+<button id="ok-f4">inline removal replaced on focus-visible</button>
+<button id="ok-f5">default ring untouched</button>
+</body></html>

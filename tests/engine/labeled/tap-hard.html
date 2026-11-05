@@ -1,0 +1,27 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>tap hard</title>
+<style>body{margin:0;height:600px}.t{position:absolute;padding:0;border:0;margin:0;box-sizing:border-box;background:#ccc;display:block}</style></head><body>
+<button id="bad-t1" class="t" style="left:20px;top:20px;width:23.6px;height:40px"></button>
+<button id="ok-t1" class="t" style="left:43px;top:20px;width:40px;height:40px"></button>
+<button id="ok-t2" class="t" style="left:200px;top:20px;width:24px;height:24px"></button>
+<button id="ok-t3" class="t" style="left:300px;top:20px;width:24.4px;height:24.4px"></button>
+<button id="bad-t2" class="t" style="left:450px;top:20px;width:23.9px;height:23.9px"></button>
+<button id="ok-t4" class="t" style="left:473.7px;top:20px;width:40px;height:40px"></button>
+<button id="ok-t5" class="t" style="left:600px;top:20px;width:43.9px;height:43.9px"></button>
+<a id="bad-t3" href="#a" class="t" style="left:20px;top:200px;width:40px;height:12px"></a>
+<button id="ok-t6" class="t" style="left:50px;top:176px;width:40px;height:40px"></button>
+<div id="bad-t4" role="checkbox" tabindex="0" class="t" style="left:200px;top:200px;width:16px;height:16px;background:#9c9"></div>
+<input id="ok-t13" type="checkbox" class="t" style="left:216px;top:196px;width:24px;height:24px">
+<input id="ok-t7" type="checkbox" class="t" style="left:400px;top:200px;width:16px;height:16px;opacity:0">
+<p style="position:absolute;left:20px;top:300px;width:500px;margin:0;font:15px Arial">Inline copy with a <a id="ok-t8" href="#b">text link</a> inside running prose.</p>
+<div id="sh-host" style="position:absolute;left:500px;top:300px"></div>
+<iframe id="fr" srcdoc="<button class='t' style='position:absolute;left:0;top:0;width:15px;height:15px;padding:0;border:0' id='bad-t5'></button><button class='t' style='position:absolute;left:0;top:19px;width:44px;height:44px;padding:0;border:0' id='ok-t9'></button>" style="position:absolute;left:20px;top:400px;width:100px;height:90px"></iframe>
+<textarea id="ok-t10" class="t" style="left:500px;top:400px;width:100px;height:60px"></textarea>
+<div id="bad-t6" tabindex="0" class="t" style="left:650px;top:400px;width:18px;height:50px"></div>
+<button id="ok-t11" class="t" style="left:669px;top:400px;width:44px;height:50px"></button>
+</body>
+<script>
+  document.getElementById('sh-host').attachShadow({mode:'open'}).innerHTML =
+    '<style>:host{display:block}button{padding:0;border:0;display:block}</style>' +
+    '<button id="bad-t7" style="width:17px;height:17px"></button><button id="ok-t12" style="width:44px;height:44px;margin-top:3px"></button>';
+</script>
+</html>
