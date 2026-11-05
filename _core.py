@@ -10,6 +10,7 @@ import time
 import uuid
 
 PLUGIN_ID = "pinpoint"
+VERSION = "0.1.0"
 PENDING_MAX_AGE = 120.0
 SWEEP_MAX_AGE = 600.0
 POLL = 0.05
