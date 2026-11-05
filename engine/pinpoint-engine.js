@@ -694,7 +694,7 @@ function pinpointEngine(config) {
   // ----- horizontal overflow -----
   function ruleHOverflow() {
     X.checked['layout.h-overflow'] = 1;
-    var vw = X.vw, sw = root.scrollWidth;
+    var vw = X.vw, sw = se().scrollWidth;
     if (sw <= vw + 1) return;
     var bodyEl = doc.querySelector('body'), rs = gcs(root), bs = bodyEl ? gcs(bodyEl) : null;
     function clipX(v) { return v === 'hidden' || v === 'clip'; }
@@ -1057,13 +1057,13 @@ function pinpointEngine(config) {
     };
     try {
       res.title = clip(sanitize(doc.title), 80);
-      res.viewport = { w: root.clientWidth, h: root.clientHeight, dpr: window.devicePixelRatio || 1 };
-      res.scroll = { w: root.scrollWidth, h: root.scrollHeight };
+      res.viewport = { w: se().clientWidth, h: se().clientHeight, dpr: window.devicePixelRatio || 1 };
+      res.scroll = { w: se().scrollWidth, h: se().scrollHeight };
       X = {
         opts: opts, cs: new Map(), fo: new Map(), rc: new Map(), ly: new Map(), vs: new Map(), tx: new Map(), idx: new Map(),
         raw: [], skipped: {}, checked: {}, limits: [], sx: window.pageXOffset || 0, sy: window.pageYOffset || 0,
         tapMin: opts.tapMin > 0 ? opts.tapMin : 24, tapAdv: opts.tapAdvisory === undefined ? 44 : opts.tapAdvisory,
-        aaa: opts.contrast === 'AAA', vw: root.clientWidth, vh: root.clientHeight
+        aaa: opts.contrast === 'AAA', vw: se().clientWidth, vh: se().clientHeight
       };
       var all = collect();
       all.forEach(function (e, i) { X.idx.set(e, i); });
@@ -1167,6 +1167,7 @@ function pinpointEngine(config) {
   function clear() {}
 
   // ---------- live tracking / events ----------
+  function se() { return doc.scrollingElement || root; }
   function now() { return Date.now(); }
   function push(ev) { ev.t = now(); queue.push(ev); if (queue.length > 200) queue.shift(); }
   function markDirty(reason) {
@@ -1210,7 +1211,7 @@ function pinpointEngine(config) {
       protocol: PROTOCOL, version: VERSION,
       url: clip(location.href, 80), key: clip(lastKey, 60),
       ready: doc.readyState === 'complete', pins: pinCount(), dirty: dirty,
-      vw: root.clientWidth, vh: root.clientHeight, docVersion: docVersion
+      vw: se().clientWidth, vh: se().clientHeight, docVersion: docVersion
     };
   }
   function drain() { var q = queue; queue = []; return q; }
