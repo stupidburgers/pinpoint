@@ -518,10 +518,10 @@ const CSS = `
 .pp-card.err{border-color:color-mix(in srgb,var(--pp-high) 45%,transparent);background:color-mix(in srgb,var(--pp-high) 8%,transparent)}
 .pp-inspector{display:flex;flex-direction:column;gap:8px;border-color:color-mix(in srgb,var(--ui-accent) 45%,transparent)}
 .pp-insp-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.pp-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px}
-.pp-kv{padding:5px 7px;border-radius:6px;background:var(--ui-bg-tertiary,transparent);border:1px solid var(--ui-stroke-tertiary,var(--dt-border));min-width:0}
-.pp-kv span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:var(--ui-text-tertiary)}
-.pp-kv b{display:block;font-family:var(--dt-font-mono,ui-monospace,monospace);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;font-size:11px}
+.pp-kv{padding:5px 7px;border-radius:6px;background:var(--ui-bg-tertiary,transparent);border:1px solid var(--ui-stroke-tertiary,var(--dt-border));min-width:0;overflow:hidden}
+.pp-kv span{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ui-text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-kv b{display:block;font-family:var(--dt-font-mono,ui-monospace,monospace);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
 .pp-qchips{display:flex;gap:5px;flex-wrap:wrap}
 .pp-qchip{min-height:24px;padding:2px 8px;border-radius:99px;border:1px solid var(--ui-stroke-secondary,var(--dt-border));background:var(--ui-bg-secondary,transparent);font-size:11px;color:var(--ui-text-secondary)}
 .pp-qchip:hover{background:var(--ui-control-hover-background,var(--ui-bg-tertiary));color:var(--ui-text-primary)}
