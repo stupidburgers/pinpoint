@@ -122,6 +122,7 @@ def test_rules_filter_and_unknown_rule(load):
     page = load("tap")
     r = audit(page, rules=["a11y.lang", "no.such.rule"])
     assert set(r["stats"]["checked"]) == {"a11y.lang"}
+    assert set(r.get("rules_covered", [])) == {"a11y.lang"}
     assert r["errors"] == [{"rule": "no.such.rule", "message": "unknown rule"}]
 
 

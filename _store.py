@@ -98,6 +98,41 @@ def _empty_delta_result(url, key):
     return {"audit_id": None, "delta": None, "url_key": key, "findings": [], "suppressed": 0}
 
 
+def _extract_coverage(result):
+    if not isinstance(result, dict):
+        return None
+    rc = result.get("rules_covered")
+    if isinstance(rc, (list, tuple, set)):
+        return {str(r) for r in rc if isinstance(r, str) and r}
+    stats = result.get("stats")
+    if isinstance(stats, dict):
+        checked = stats.get("checked")
+        if isinstance(checked, dict) and checked:
+            errored = {e["rule"] for e in result.get("errors") or [] if isinstance(e, dict) and e.get("rule")}
+            return {str(r) for r in checked if str(r) not in errored}
+        if isinstance(checked, (list, tuple, set)) and checked:
+            return {str(r) for r in checked}
+    rules = result.get("rules")
+    if isinstance(rules, (list, tuple, set)) and rules:
+        return {str(r) for r in rules if isinstance(r, str) and r}
+    return None
+
+
+def _pin_rule(pin_id, finding_raw):
+    if isinstance(finding_raw, dict) and finding_raw.get("rule"):
+        return str(finding_raw["rule"])
+    if isinstance(finding_raw, str) and finding_raw:
+        try:
+            f = json.loads(finding_raw)
+            if isinstance(f, dict) and f.get("rule"):
+                return str(f["rule"])
+        except (TypeError, ValueError):
+            pass
+    if isinstance(pin_id, str) and "@" in pin_id:
+        return pin_id.split("@", 1)[0]
+    return ""
+
+
 def record_audit(result, source="user"):
     """Store one AuditResult; returns {audit_id, delta, url_key, findings(visible), suppressed, score, counts}."""
     try:
@@ -115,14 +150,23 @@ def record_audit(result, source="user"):
         now = _now()
         with connect() as c:
             prev_audit = c.execute("select score from audits where url_key=? order by id desc limit 1", (key,)).fetchone()
-            pins = {r[0]: (r[1], r[2], r[3]) for r in c.execute(
-                "select id,status,first_seen,reason from pins where url_key=?", (key,))}
+            pins = {r[0]: (r[1], r[2], r[3], r[4]) for r in c.execute(
+                "select id,status,finding,first_seen,reason from pins where url_key=?", (key,))}
             dismissed = {i for i, p in pins.items() if p[0] == "dismissed"}
             visible = [f for f in findings if f["id"] not in dismissed]
             suppressed = len(findings) - len(visible)
             cur = {f["id"] for f in visible}
             prev_open = {i for i, p in pins.items() if p[0] in ("open", "new")}
-            fixed = [i for i in pins if i in prev_open and i not in cur]
+            coverage = _extract_coverage(result)
+            fixed = []
+            not_rechecked = []
+            for i in pins:
+                if i in prev_open and i not in cur:
+                    p_rule = _pin_rule(i, pins[i][1])
+                    if coverage is not None and (not p_rule or p_rule not in coverage):
+                        not_rechecked.append(i)
+                    else:
+                        fixed.append(i)
             new = [f["id"] for f in visible if f["id"] not in pins]
             remaining = len(cur & prev_open)
             cid = c.execute("insert into audits(url_key,url,t,score,counts,source) values(?,?,?,?,?,?)",
@@ -146,6 +190,9 @@ def record_audit(result, source="user"):
             delta = None
             if prev_audit:
                 delta = {"prev_score": prev_audit[0], "fixed": fixed, "new": new, "remaining": remaining}
+                if coverage is not None or not_rechecked:
+                    delta["not_rechecked"] = not_rechecked
+                    delta["unresolved"] = not_rechecked
             _prune(c, key)
         return {"audit_id": cid, "delta": delta, "url_key": key, "findings": visible,
                 "suppressed": suppressed, "score": score, "counts": counts}

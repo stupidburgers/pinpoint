@@ -121,6 +121,27 @@ test('localDelta: fixed / new / remaining; null without a previous audit', () =>
   assert.deepEqual(B.localDelta([f('a')], [f('z')], ['z']).new, [])   // seen before: not new
 })
 
+test('localDelta: scope change does not falsely fix unmeasured finding', () => {
+  const fCtrl = { id: 'a11y.control-name@412214a1', rule: 'a11y.control-name' }
+  const prev = [fCtrl]
+  const cur = [] // no findings in current audit
+  // Re-audit only covers a11y.img-alt
+  const delta = B.localDelta(prev, cur, [], ['a11y.img-alt'])
+  assert.equal(delta.fixed.includes(fCtrl.id), false, 'control-name must not be fixed')
+  assert.deepEqual(delta.fixed, [])
+  assert.ok(delta.not_rechecked && delta.not_rechecked.includes(fCtrl.id))
+})
+
+test('localDelta: same scope repair clears finding', () => {
+  const fCtrl = { id: 'a11y.control-name@412214a1', rule: 'a11y.control-name' }
+  const prev = [fCtrl]
+  const cur = [] // defect fixed
+  // Re-audit covers a11y.control-name
+  const delta = B.localDelta(prev, cur, [], ['a11y.control-name'])
+  assert.deepEqual(delta.fixed, [fCtrl.id])
+  assert.deepEqual(delta.not_rechecked || [], [])
+})
+
 test('normalizeDelta accepts the python shape and rejects junk', () => {
   assert.deepEqual(B.normalizeDelta({ prev_score: 40, fixed: ['a'], new: [], remaining: 5 }), { prev_score: 40, fixed: ['a'], new: [], remaining: 5 })
   assert.equal(B.normalizeDelta(null), null)

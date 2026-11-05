@@ -203,7 +203,8 @@ async function doAudit({ source, args, deliver }) {
       const posted = await storePost('/audit', { result: res, source })
       delta = normalizeDelta(posted && posted.delta)
     }
-    if (!delta) delta = localDelta(prev.findings, res.findings, prev.seen)
+    const covered = res.rules_covered || (res.stats && res.stats.checked ? Object.keys(res.stats.checked) : null)
+    if (!delta) delta = localDelta(prev.findings, res.findings, prev.seen, covered)
     const fixedF = delta && prev.findings ? prev.findings.filter(f => delta.fixed.includes(f.id)) : []
     const prevScore = delta && typeof delta.prev_score === 'number' ? delta.prev_score : prev.score != null ? prev.score : null
 
