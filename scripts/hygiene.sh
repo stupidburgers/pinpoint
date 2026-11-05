@@ -28,4 +28,14 @@ if [ -n "$shipped" ]; then
     && bad "forbidden pattern in shipped source (see lines above)"
 fi
 
+# 4. chr()+chr() chains in shipped python (mirrors the install scanner's
+# `chr_building` rule, which scans EVERY shipped file — demo/tools included;
+# only tests/ is dropped here because the install scanner demotes deliberate
+# test fixtures one severity there too, cf. plugin-guard v12 #89610).
+chpy=$(git ls-files -- '*.py' | grep -Ev '^tests/')
+if [ -n "$chpy" ]; then
+  echo "$chpy" | xargs grep -nE 'chr[[:space:]]*\([[:space:]]*[0-9]+[[:space:]]*\)[[:space:]]*\+[[:space:]]*chr[[:space:]]*\(' \
+    && bad "chr()+chr() chain in shipped python (install scanner chr_building)"
+fi
+
 [ "$fail" = 0 ] && echo "hygiene ok" || exit 1
