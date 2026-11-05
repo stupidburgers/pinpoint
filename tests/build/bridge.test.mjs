@@ -183,8 +183,44 @@ test('parsePending tolerates arrays and wrapped objects', () => {
 
 test('buildAuditOpts', () => {
   assert.deepEqual(B.buildAuditOpts({}, {}, []), { maxFindings: 200, tapAdvisory: 44, contrast: 'AA' })
-  const o = B.buildAuditOpts({ rules: ['a11y.contrast'] }, { tapAdvisory: 0, contrast: 'AAA' }, ['x@1'])
-  assert.deepEqual(o, { maxFindings: 200, tapAdvisory: 0, contrast: 'AAA', rules: ['a11y.contrast'], suppress: ['x@1'] })
+  const o = B.buildAuditOpts({ rules: ['a11y.contrast'], inspectSelector: '#hero' }, { tapAdvisory: 0, contrast: 'AAA' }, ['x@1'])
+  assert.deepEqual(o, { maxFindings: 200, tapAdvisory: 0, contrast: 'AAA', rules: ['a11y.contrast'], suppress: ['x@1'], inspectSelector: '#hero' })
+})
+
+test('formatDesignPrompt stays <= 700 chars and includes structured metrics', () => {
+  const target = {
+    selector: '#hero .cta',
+    tag: 'button',
+    label: "button.cta 'Get Started'",
+    rect: { x: 10, y: 20, w: 160, h: 44 },
+    boxModel: { padding: '12px 24px', margin: '0px', border: '1px solid #000000' },
+    typography: { fontFamily: 'Inter', fontSize: '16px', fontWeight: '600', lineHeight: '24px', color: '#ffffff' },
+    layout: { display: 'inline-flex', position: 'relative', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '8px' },
+    colors: { fg: '#ffffff', bg: '#2563eb', contrastRatio: 5.12 },
+    findings: [{ id: 'a11y.contrast@1', rule: 'a11y.contrast', sev: 'high', note: 'Low contrast' }]
+  }
+  const p = B.formatDesignPrompt(target, 'http://localhost:5173/', 'Make padding roomier and increase contrast')
+  assert.ok(p.length <= 700, 'len ' + p.length)
+  assert.ok(p.includes('`#hero .cta`'))
+  assert.ok(p.includes('160×44px'))
+  assert.ok(p.includes('Inter 16px/24px'))
+  assert.ok(p.includes('#ffffff on bg #2563eb (5.12:1)'))
+  assert.ok(p.includes('Make padding roomier'))
+  const huge = 'x'.repeat(600)
+  const p2 = B.formatDesignPrompt({ ...target, selector: huge, label: huge }, 'http://localhost:5173/' + huge, huge)
+  assert.ok(p2.length <= 700, 'hostile len ' + p2.length)
+})
+
+test('classifyAuditState and formatFixReceipt', () => {
+  const all14 = ['a11y.contrast', 'a11y.control-name', 'a11y.img-alt', 'a11y.label', 'a11y.heading-order', 'a11y.html-lang', 'a11y.page-title', 'a11y.viewport-zoom', 'a11y.focus-visible', 'a11y.duplicate-id', 'a11y.aria-valid', 'layout.tap-target', 'layout.overflow-x', 'layout.crowding']
+  assert.equal(B.classifyAuditState({ findings: [], rules_covered: all14 }).state, 'complete')
+  assert.equal(B.classifyAuditState({ findings: [], rules_covered: ['a11y.contrast'] }).state, 'partial')
+  assert.equal(B.classifyAuditState({ findings: [], rules_covered: all14, truncated: true }).state, 'partial')
+  assert.equal(B.classifyAuditState({ findings: [] }).state, 'unknown')
+  assert.equal(B.classifyAuditState({ findings: [], errors: [{ rule: 'engine', message: 'boom' }] }).state, 'error')
+  const r = B.formatFixReceipt(94, 72, [{ id: 'a11y.contrast@1', rule: 'a11y.contrast' }], 1, 'http://localhost:5173/')
+  assert.ok(r.includes('72 → 94 (+22)'))
+  assert.ok(r.includes('1 fixed [a11y.contrast]'))
 })
 
 test('groupBySeverity orders by severity then pin number', () => {
