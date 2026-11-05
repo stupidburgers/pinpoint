@@ -1099,7 +1099,7 @@ function pinpointEngine(config) {
    X.all = all;
    X.els = all;
    res.stats.elements = all.length;
-   res.presentComplete = all.length <= 4000;
+   res.presentComplete = all.length <= 2500;
    res.presentAnchors = res.presentComplete ? all.map(anchorSig) : [];  // never ship an unusable, oversized list
    if (all.length > 5000) {
     var lo = X.sy - 2 * X.vh, hi = X.sy + 3 * X.vh;
@@ -1703,6 +1703,18 @@ function clampN(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
  listen(window, 'load', function() { markDirty('load'); scheduleLayout(); });
  listen(window, 'popstate', checkNavigation);
  listen(window, 'hashchange', checkNavigation);
+ if (window.history) {
+  ['pushState', 'replaceState'].forEach(function(m) {
+   if (typeof window.history[m] === 'function') {
+    var orig = window.history[m];
+    window.history[m] = function() {
+     var ret = orig.apply(this, arguments);
+     try { checkNavigation(); } catch (e) {}
+     return ret;
+    };
+   }
+  });
+ }
  window.__pinpoint = api;
  return api;
 }
