@@ -1,0 +1,242 @@
+[
+  {
+    "name": "valid_empty",
+    "patch": {},
+    "fixed": true
+  },
+  {
+    "name": "valid_optional_empty",
+    "patch": {
+      "errors": [],
+      "limits": []
+    },
+    "fixed": true
+  },
+  {
+    "name": "errors_null",
+    "patch": {
+      "errors": null
+    },
+    "fixed": false
+  },
+  {
+    "name": "errors_object",
+    "patch": {
+      "errors": {}
+    },
+    "fixed": false
+  },
+  {
+    "name": "errors_string",
+    "patch": {
+      "errors": ""
+    },
+    "fixed": false
+  },
+  {
+    "name": "errors_false",
+    "patch": {
+      "errors": false
+    },
+    "fixed": false
+  },
+  {
+    "name": "errors_number",
+    "patch": {
+      "errors": 0
+    },
+    "fixed": false
+  },
+  {
+    "name": "errors_null_entry",
+    "patch": {
+      "errors": [
+        null
+      ]
+    },
+    "fixed": false
+  },
+  {
+    "name": "errors_object_entry",
+    "patch": {
+      "errors": [
+        {}
+      ]
+    },
+    "fixed": false
+  },
+  {
+    "name": "errors_number_entry",
+    "patch": {
+      "errors": [
+        1
+      ]
+    },
+    "fixed": false
+  },
+  {
+    "name": "limits_null",
+    "patch": {
+      "limits": null
+    },
+    "fixed": false
+  },
+  {
+    "name": "limits_object",
+    "patch": {
+      "limits": {}
+    },
+    "fixed": false
+  },
+  {
+    "name": "limits_string",
+    "patch": {
+      "limits": ""
+    },
+    "fixed": false
+  },
+  {
+    "name": "limits_false",
+    "patch": {
+      "limits": false
+    },
+    "fixed": false
+  },
+  {
+    "name": "limits_number",
+    "patch": {
+      "limits": 0
+    },
+    "fixed": false
+  },
+  {
+    "name": "limits_null_entry",
+    "patch": {
+      "limits": [
+        null
+      ]
+    },
+    "fixed": false
+  },
+  {
+    "name": "limits_object_entry",
+    "patch": {
+      "limits": [
+        {}
+      ]
+    },
+    "fixed": false
+  },
+  {
+    "name": "limits_number_entry",
+    "patch": {
+      "limits": [
+        1
+      ]
+    },
+    "fixed": false
+  },
+  {
+    "name": "findings_null",
+    "patch": {
+      "findings": null
+    },
+    "fixed": false
+  },
+  {
+    "name": "findings_object",
+    "patch": {
+      "findings": {}
+    },
+    "fixed": false
+  },
+  {
+    "name": "findings_string",
+    "patch": {
+      "findings": ""
+    },
+    "fixed": false
+  },
+  {
+    "name": "findings_false",
+    "patch": {
+      "findings": false
+    },
+    "fixed": false
+  },
+  {
+    "name": "findings_number",
+    "patch": {
+      "findings": 0
+    },
+    "fixed": false
+  },
+  {
+    "name": "findings_null_entry",
+    "patch": {
+      "findings": [
+        null
+      ]
+    },
+    "fixed": false
+  },
+  {
+    "name": "findings_object_entry",
+    "patch": {
+      "findings": [
+        {}
+      ]
+    },
+    "fixed": false
+  },
+  {
+    "name": "findings_number_entry",
+    "patch": {
+      "findings": [
+        1
+      ]
+    },
+    "fixed": false
+  },
+  {
+    "name": "missing_findings",
+    "omit": [
+      "findings"
+    ],
+    "patch": {},
+    "fixed": false
+  },
+  {
+    "name": "invalid_finding_id",
+    "patch": {
+      "findings": [
+        {
+          "id": 7
+        }
+      ]
+    },
+    "fixed": false
+  },
+  {
+    "name": "blank_finding_id",
+    "patch": {
+      "findings": [
+        {
+          "id": "  "
+        }
+      ]
+    },
+    "fixed": false
+  },
+  {
+    "name": "invalid_error_rule",
+    "patch": {
+      "errors": [
+        {
+          "rule": []
+        }
+      ]
+    },
+    "fixed": false
+  }
+]
