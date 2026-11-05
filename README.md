@@ -22,8 +22,6 @@ Then enable the second half in Desktop: **Capabilities > Plugins > Pinpoint**. B
 
 Use it: open a page in the Browser pane (`Ctrl+Shift+L`), run **Pinpoint: audit page** from the command palette (or ask the agent to audit the page). The first time per site, Desktop asks "Let Pinpoint run scripts on this page?". Choose *Allow on this site*.
 
-> Status: this README describes the design in SPEC.md. Sections marked FILL or listed under "Not verified yet" are not backed by a run yet.
-
 ## What you get
 
 | Audit and pins | Pin card, Fix with Hermes | Re-audit after the fix |
@@ -94,7 +92,7 @@ Desktop's host-owned dialog asks per site before any script runs in the page. Pi
 
 ### Not verified yet
 
-Fill this list from the real test run before freeze. Items below are the ones I know are open:
+Items below are known to be open or unverified:
 
 - macOS and Linux: no OS-specific code, but only Windows 11 was run.
 - Hermes versions other than 0.22.7 (Desktop 2026.7363.3271.0).
@@ -102,6 +100,7 @@ Fill this list from the real test run before freeze. Items below are the ones I 
 - Whether a real model reliably picks `pinpoint_audit` unprompted (tools are deferred; a system-prompt line names both).
 - Multi-window claim race: the claim/token logic is unit-tested, not exercised with two real Desktop windows.
 - Real-model runs: the end-to-end suite uses a scripted model, not a live provider.
+- No session or window correlation: any authenticated Desktop window can claim a request (issue #18); completion is checked by the server-minted token only.
 - The e2e desktop-only scenario (`test_6`) fails on this build, also before the Design Mode work; the Python half stays reachable when disabled.
 - Design mode was exercised in the real Desktop Browser pane (isolated rig, hover HUD, click-to-select card, arrow-key navigation; screenshots below) by driving it over the debug port. The pane-side Design Mode inspector card and palette command were not clicked through in the real app.
 
@@ -124,6 +123,8 @@ Fill this list from the real test run before freeze. Items below are the ones I 
 | type.line-height | 3 | 0 | 3 | 0 | 1.00 | 1.00 |
 | type.text-small | 5 | 0 | 4 | 0 | 1.00 | 1.00 |
 | **all** | 55 | 0 | 75 | 0 | 1.00 | 1.00 |
+
+These numbers are measured on this project's own hand-labeled 130-element corpus (`docs/metrics.md`), not on an independent benchmark. Treat 1.00 as "no misses on our fixtures", not as a general accuracy claim. Pinpoint has 14 rules and is not a replacement for axe-core or Lighthouse.
 
 ## Develop
 
