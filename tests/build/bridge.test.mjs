@@ -114,10 +114,10 @@ test('urlKey matches tests/shared/url_key_cases.json when package A has produced
 })
 
 test('localDelta: fixed / new / remaining; null without a previous audit', () => {
-  const f = id => ({ id })
+  const f = id => ({ id, rule: 'test.rule' })
   assert.equal(B.localDelta(null, [f('a')]), null)
-  const d = B.localDelta([f('a'), f('b'), f('c')], [f('b'), f('c'), f('d')], ['z'])
-  assert.deepEqual(d, { fixed: ['a'], new: ['d'], remaining: 2 })
+  const d = B.localDelta([f('a'), f('b'), f('c')], [f('b'), f('c'), f('d')], ['z'], ['test.rule'])
+  assert.deepEqual(d, { fixed: ['a'], new: ['d'], remaining: 2, not_rechecked: [], unresolved: [] })
   assert.deepEqual(B.localDelta([f('a')], [f('z')], ['z']).new, [])   // seen before: not new
 })
 
@@ -140,6 +140,15 @@ test('localDelta: same scope repair clears finding', () => {
   const delta = B.localDelta(prev, cur, [], ['a11y.control-name'])
   assert.deepEqual(delta.fixed, [fCtrl.id])
   assert.deepEqual(delta.not_rechecked || [], [])
+})
+
+test('localDelta: missing or malformed coverage is not evidence of repair', () => {
+  const f = { id: 'a11y.control-name@412214a1', rule: 'a11y.control-name' }
+  for (const coverage of [undefined, null, 'broken', [null], {}]) {
+    const d = B.localDelta([f], [], [], coverage)
+    assert.deepEqual(d.fixed, [])
+    assert.deepEqual(d.not_rechecked, [f.id])
+  }
 })
 
 test('normalizeDelta accepts the python shape and rejects junk', () => {

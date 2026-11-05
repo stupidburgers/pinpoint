@@ -139,13 +139,32 @@ export function createRateLimiter(opts) {
 }
 
 // ----- delta (mirror of the Python rule, used in desktop-only mode and as UI fallback) -----
+// Only completed reporting can prove absence; never infer scope from findings or requested rules.
+export function auditCoverage(res) {
+  const errors = res.errors || [], limits = res.limits || []
+  if (!Array.isArray(errors) || !Array.isArray(limits) || res.truncated || limits.some(x => /truncat/i.test(String(x)))) return []
+  if (errors.some(e => !e || !e.rule || e.rule === 'engine')) return []
+  const errored = new Set(errors.map(e => e.rule))
+  let covered = []
+  if (Object.prototype.hasOwnProperty.call(res, 'rules_covered')) {
+    if (!Array.isArray(res.rules_covered) || !res.rules_covered.every(r => typeof r === 'string' && r)) return []
+    covered = res.rules_covered
+  } else {
+    const checked = res.stats && res.stats.checked
+    if (checked && typeof checked === 'object' && !Array.isArray(checked)) {
+      covered = Object.keys(checked).filter(r => r && typeof checked[r] === 'number' && Number.isFinite(checked[r]) && checked[r] >= 0)
+    }
+  }
+  return covered.filter(r => !errored.has(r))
+}
+
 export function localDelta(prev, cur, seenIds, coveredRules) {
   if (!prev) return null
   const prevIds = new Set(prev.map(f => f.id))
   const seen = new Set(seenIds || [])
   prevIds.forEach(id => seen.add(id))
   const curIds = new Set(cur.map(f => f.id))
-  const coveredSet = coveredRules ? new Set(Array.isArray(coveredRules) ? coveredRules : coveredRules) : null
+  const coveredSet = new Set(Array.isArray(coveredRules) && coveredRules.every(r => typeof r === 'string' && r) ? coveredRules : [])
 
   const fixed = []
   const notRechecked = []
@@ -154,7 +173,7 @@ export function localDelta(prev, cur, seenIds, coveredRules) {
     const id = f && f.id
     if (!id || curIds.has(id)) continue
     const rule = (f && f.rule) || (typeof id === 'string' && id.includes('@') ? id.split('@')[0] : '')
-    if (coveredSet && (!rule || !coveredSet.has(rule))) {
+    if (!rule || !coveredSet.has(rule)) {
       notRechecked.push(id)
     } else {
       fixed.push(id)
@@ -164,10 +183,8 @@ export function localDelta(prev, cur, seenIds, coveredRules) {
   const added = [...curIds].filter(id => !seen.has(id))
   const remaining = [...curIds].filter(id => prevIds.has(id)).length
   const out = { fixed, new: added, remaining }
-  if (coveredSet || notRechecked.length) {
-    out.not_rechecked = notRechecked
-    out.unresolved = notRechecked
-  }
+  out.not_rechecked = notRechecked
+  out.unresolved = notRechecked
   return out
 }
 

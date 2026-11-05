@@ -28,6 +28,7 @@ const initialUi = () => ({
   key: '',
   prevScore: null,
   delta: null,              // { prev_score, fixed[], new[], remaining }
+  unresolved: [],           // older open findings not measured in the latest result
   fixed: [],                // findings fixed in the last re-audit (shown green)
   dismissed: [],            // findings the user/agent marked intentional
   lost: [],                 // ids the engine could not locate
@@ -124,9 +125,9 @@ async function previousFor(key) {
     return { findings: known ? live : null, dismissed: dis, seen: st.pins.map(p => p.id), score: st.last ? st.last.score : null }
   }
   const mem = M.mem[key]
-  if (mem) return { findings: mem.findings, dismissed: mem.dismissed || [], seen: [...mem.seen], score: mem.score }
+  if (mem) return { findings: mem.findings.filter(f => !(mem.dismissed || []).some(d => d.id === f.id)), dismissed: mem.dismissed || [], seen: [...mem.seen], score: mem.score }
   const loc = localLoad(key)
-  if (loc) return { findings: loc.findings || [], dismissed: loc.dismissed || [], seen: loc.seen || [], score: loc.score }
+  if (loc) return { findings: (loc.findings || []).filter(f => !(loc.dismissed || []).some(d => d.id === f.id)), dismissed: loc.dismissed || [], seen: loc.seen || [], score: loc.score }
   return { findings: null, dismissed: [], seen: [], score: null }
 }
 
@@ -203,15 +204,18 @@ async function doAudit({ source, args, deliver }) {
       const posted = await storePost('/audit', { result: res, source })
       delta = normalizeDelta(posted && posted.delta)
     }
-    const covered = res.rules_covered || (res.stats && res.stats.checked ? Object.keys(res.stats.checked) : null)
+    const covered = auditCoverage(res)
     if (!delta) delta = localDelta(prev.findings, res.findings, prev.seen, covered)
     const fixedF = delta && prev.findings ? prev.findings.filter(f => delta.fixed.includes(f.id)) : []
+    const unresolved = delta && prev.findings ? prev.findings.filter(f =>
+      (delta.not_rechecked || []).includes(f.id) && !res.findings.some(g => g.id === f.id)) : []
+    const openFindings = [...res.findings, ...unresolved]
     const prevScore = delta && typeof delta.prev_score === 'number' ? delta.prev_score : prev.score != null ? prev.score : null
 
     let lost = []
     const pin = a.pin !== false
     if (pin) {
-      const { list, statuses } = applyPins(res.findings, fixedF, delta)
+      const { list, statuses } = applyPins(openFindings, fixedF, delta)
       const rr = (await callApi('render', [list, { statuses, pinLimit: 60 }])).v
       lost = (rr && rr.lost) || []
     } else {
@@ -221,18 +225,18 @@ async function doAudit({ source, args, deliver }) {
     M.auditedVersion = M.lastVersion = after ? after.docVersion : -1
     M.dirtySince = 0
 
-    M.mem[key] = { findings: res.findings, dismissed: prev.dismissed, seen: new Set([...prev.seen, ...res.findings.map(f => f.id)]), score: res.score }
-    if (!pyOn()) localSave(key, { findings: res.findings, dismissed: prev.dismissed, seen: [...M.mem[key].seen], score: res.score })
+    M.mem[key] = { findings: openFindings, dismissed: prev.dismissed, seen: new Set([...prev.seen, ...res.findings.map(f => f.id)]), score: res.score }
+    if (!pyOn()) localSave(key, { findings: openFindings, dismissed: prev.dismissed, seen: [...M.mem[key].seen], score: res.score })
     C.storage.set('lastKey', key); C.storage.set('active', true)
     M.active = true; M.lastMissingHref = ''; M.resume = null; M.skip = 0
     if (M.fadeUndo) { M.fadeUndo(); M.fadeUndo = null }
-    setUi({ phase: 'result', result: res, url: res.url || probe.url, key, prevScore, delta, fixed: fixedF, dismissed: prev.dismissed, lost, selected: '', pinsShown: pin })
+    setUi({ phase: 'result', result: res, url: res.url || probe.url, key, prevScore, delta, unresolved, fixed: fixedF, dismissed: prev.dismissed, lost, selected: '', pinsShown: pin })
     ensurePoll()
     if (fixedF.length && pin) {
       M.fadeUndo = C.setTimeout(() => {
         if (M.seq !== mySeq) return
         void (async () => {
-          try { const { list, statuses } = applyPins(res.findings, [], delta); await callApi('render', [list, { statuses, pinLimit: 60 }]); setUi({ fixed: [] }) } catch (e) { /* page gone */ }
+          try { const { list, statuses } = applyPins(openFindings, [], delta); await callApi('render', [list, { statuses, pinLimit: 60 }]); setUi({ fixed: [] }) } catch (e) { /* page gone */ }
         })()
       }, FIXED_FADE_MS)
     }
@@ -292,7 +296,9 @@ async function sendToAgent(text, okMsg) {
   host.notify({ kind: 'info', title: 'Pinpoint', message: drafted ? 'Open a chat to send. The fix request is in your draft.' : 'Open a chat first, then press Fix again.' })
   return false
 }
-const findingById = id => { const r = $ui.get().result; return r ? r.findings.find(f => f.id === id) : null }
+// Retained open pins are distinct from this audit's measured findings.
+const currentFindings = s => s.result ? [...s.result.findings, ...(s.unresolved || [])] : []
+const findingById = id => currentFindings($ui.get()).find(f => f.id === id)
 async function fixFinding(id) {
   const f = findingById(id); if (!f) return
   log('fix pin', { id })
@@ -300,7 +306,7 @@ async function fixFinding(id) {
 }
 async function fixAllHigh() {
   const s = $ui.get(); if (!s.result) return
-  const open = s.result.findings.filter(f => !s.dismissed.some(d => d.id === f.id))
+  const open = currentFindings(s).filter(f => !s.dismissed.some(d => d.id === f.id))
   if (!open.some(f => f.sev === 'high')) { host.notify({ kind: 'info', title: 'Pinpoint', message: 'No high-severity findings.' }); return }
   await sendToAgent(buildFixAllPrompt(open, s.url, 8), 'High-severity findings sent to Hermes')
 }
@@ -310,7 +316,7 @@ async function dismissFinding(id, why) {
   await storePost('/pins', { action: 'dismiss', url_key: s.key, ids: [id], reason: why || 'Dismissed in the Pinpoint pane' })
   const dismissed = [...s.dismissed.filter(d => d.id !== id), f]
   const mem = M.mem[s.key]; if (mem) mem.dismissed = dismissed
-  if (!pyOn()) localSave(s.key, { findings: s.result.findings, dismissed, seen: mem ? [...mem.seen] : [], score: s.result.score })
+  if (!pyOn()) localSave(s.key, { findings: currentFindings(s), dismissed, seen: mem ? [...mem.seen] : [], score: s.result.score })
   setUi({ dismissed })
   try { await callApi('setStatuses', [{ [id]: 'dismissed' }]) } catch (e) { /* page gone */ }
   log('dismissed', { id })
@@ -321,7 +327,7 @@ async function reopenFinding(id) {
   const mem = M.mem[s.key]
   const dismissed = s.dismissed.filter(f => f.id !== id)
   if (mem) mem.dismissed = dismissed
-  if (!pyOn()) localSave(s.key, { findings: s.result ? s.result.findings : [], dismissed, seen: mem ? [...mem.seen] : [], score: s.result ? s.result.score : null })
+  if (!pyOn()) localSave(s.key, { findings: currentFindings(s), dismissed, seen: mem ? [...mem.seen] : [], score: s.result ? s.result.score : null })
   setUi({ dismissed })
   void performAudit({ source: 'user' })
 }
@@ -579,7 +585,7 @@ function resultView(s) {
   const r = s.result
   const out = []
   const dismissedIds = new Set(s.dismissed.map(f => f.id))
-  const open = r.findings.filter(f => !dismissedIds.has(f.id))
+  const open = currentFindings(s).filter(f => !dismissedIds.has(f.id))
   const counts = { high: 0, medium: 0, low: 0 }
   open.forEach(f => { if (counts[f.sev] != null) counts[f.sev]++ })
   const diff = typeof s.prevScore === 'number' ? r.score - s.prevScore : null

@@ -30,7 +30,7 @@ def F(n, sev="high", rule="a11y.contrast", label="btn"):
 
 def audit(ns, score=50, url=URL):
     fs = [F(n) for n in ns]
-    return {"url": url, "score": score, "counts": {"high": len(fs), "medium": 0, "low": 0}, "findings": fs}
+    return {"url": url, "score": score, "counts": {"high": len(fs), "medium": 0, "low": 0}, "findings": fs, "rules_covered": ["a11y.contrast"]}
 
 
 @pytest.fixture
