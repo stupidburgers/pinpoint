@@ -17,7 +17,8 @@ Deadline: **2026-11-11 17:00 EST (19:00 BRT)**. Freeze: **Nov 10**. Do the steps
 - [ ] Rule 10: no `python_dependencies`; nothing to quarantine.
 
 ## 3. Catalog PR to NousResearch/hermes-agent
-- [ ] Fork, branch `catalog/pinpoint`, add only `plugin-catalog/pinpoint.yaml`.
+- [x] PR opened: https://github.com/NousResearch/hermes-agent/pull/149426
+- [x] Fork, branch `catalog/pinpoint`, add only `plugin-catalog/pinpoint.yaml`.
 - [ ] PR title: `Add pinpoint to the plugin catalog`.
 - [ ] PR body: one paragraph on what it does, the SHA and version, the **Disclosure** paragraph verbatim from the README, the validate output, link to the README at the SHA.
 - [ ] First comment titled "What is not verified": paste the README's "Not verified yet" list as it stands at the SHA. Do not claim more than it says.
