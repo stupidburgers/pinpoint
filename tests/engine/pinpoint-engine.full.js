@@ -1000,7 +1000,7 @@ function pinpointEngine(config) {
   return {
    tag: el.localName, role: roleOf(el), name: clip(sanitize(el.getAttribute('aria-label') || tx || el.getAttribute('alt') || ''), 40),
    textHash: fnv1a(normText(tx)), ref: clip(sanitize(el.getAttribute('id') || ''), 80), path: clip(sanitize(ancestorPath(el)), 120),
-   nameAttr: clip(sanitize(el.getAttribute('name') || ''), 60)
+   nameAttr: clip(sanitize(el.getAttribute('name') || ''), 60), sig: anchorSig(el)
   };
  }
  function roundRect(r) { return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.w), h: Math.round(r.h) }; }
