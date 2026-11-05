@@ -90,7 +90,7 @@ def test_result_shape(load):
     for k in ("id", "rule", "sev", "confidence", "selector", "label", "note", "fix", "measured", "rect", "anchor", "pin"):
         assert k in f
     assert re.fullmatch(r"[a-z0-9.\-]+@[0-9a-f]{8}", f["id"])
-    assert set(f["anchor"]) == {"tag", "role", "name", "textHash", "ref", "path", "nameAttr"}
+    assert set(f["anchor"]) == {"tag", "role", "name", "textHash", "ref", "path", "nameAttr", "sig"}
     assert set(f["rect"]) == {"x", "y", "w", "h"}
     assert len(f["label"]) <= 40 and len(f["selector"]) <= 200
 
