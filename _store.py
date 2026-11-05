@@ -148,12 +148,18 @@ def _pin_rule(pin_id, finding_raw):
     return ""
 
 
-def _present_set(result):
-    """Anchor signatures of elements present on the page, or None when completeness is unknown."""
+def _present_counts(result):
+    """(counts, state): state is 'legacy' (no presence data), 'incomplete' or 'complete'."""
+    if "presentAnchors" not in result:
+        return None, "legacy"
     pa = result.get("presentAnchors")
-    if not isinstance(pa, list) or any(not isinstance(x, str) for x in pa) or len(pa) >= 2000:
-        return None
-    return set(pa)
+    if (not isinstance(pa, list) or any(not isinstance(x, str) for x in pa)
+            or result.get("presentComplete") is not True):
+        return None, "incomplete"
+    counts = {}
+    for x in pa:
+        counts[x] = counts.get(x, 0) + 1
+    return counts, "complete"
 
 
 def _pin_sig(finding_raw):
@@ -212,15 +218,22 @@ def record_audit(result, source="user"):
             fixed = []
             gone = []
             not_rechecked = []
-            present = _present_set(result)
+            present, presence = _present_counts(result)
             for i in pins:
                 if i in prev_open and i not in cur:
                     p_rule = _pin_rule(i, pins[i][1])
                     if not p_rule or p_rule not in coverage:
                         not_rechecked.append(i)
+                    elif presence == "legacy":
+                        fixed.append(i)
+                    elif presence == "incomplete":
+                        not_rechecked.append(i)      # cannot tell removed from repaired
                     else:
                         sig = _pin_sig(pins[i][1])
-                        if present is not None and sig is not None and sig not in present:
+                        n = present.get(sig, 0) if sig else None
+                        if n is None or n > 1:
+                            not_rechecked.append(i)  # no/ambiguous element signature
+                        elif n == 0:
                             gone.append(i)
                         else:
                             fixed.append(i)

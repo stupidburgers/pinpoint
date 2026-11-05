@@ -149,6 +149,7 @@ def test_inspect_and_audit_inspect_selector_and_present_anchors(blank):
     """)
     res = page.pp.call("audit", {"inspectSelector": "#cta"})
     assert isinstance(res.get("presentAnchors"), list) and len(res["presentAnchors"]) >= 3
+    assert res["presentComplete"] is True
     assert any(a.startswith("button|#cta|") for a in res["presentAnchors"])
     insp = res.get("inspected")
     assert insp is not None
@@ -199,12 +200,16 @@ def test_design_mode_hover_click_keyboard_and_send_to_hermes(blank):
     assert page.pp.call("probe")["selected"]["selector"] == "#first"
 
     # Click Send to Hermes in shadow root Design Card -> pushes { type: 'design', target, note, t } to drain()
+    # A page script clicking the overlay (isTrusted=false) must be ignored.
     page.evaluate("""() => {
       const sr = document.querySelector('[data-pp-root]').shadowRoot;
       sr.querySelector('.dchip').click();
-      const btns = Array.from(sr.querySelectorAll('.card.dcard .go'));
-      btns[0].click();
+      sr.querySelectorAll('.card.dcard .go')[0].click();
     }""")
+    assert [e for e in page.pp.call("drain") if e.get("type") == "design"] == []
+    # Real user input works.
+    page.locator("[data-pp-root] .dchip").first.click()
+    page.locator("[data-pp-root] .card.dcard .go").first.click()
     evs = page.pp.call("drain")
     design_evs = [e for e in evs if e.get("type") == "design"]
     assert len(design_evs) == 1

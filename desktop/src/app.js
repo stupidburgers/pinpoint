@@ -428,7 +428,7 @@ async function tick() {
     else if (ev.type === 'fix') void fixFinding(ev.id)
     else if (ev.type === 'dismiss') void dismissFinding(ev.id, 'Dismissed from the pin card')
     else if (ev.type === 'inspect-select' && ev.target) setUi({ inspected: ev.target })
-    else if (ev.type === 'design' && ev.target) { setUi({ inspected: ev.target, designNote: ev.note || '' }); void sendDesignToHermes(ev.target, ev.note || '') }
+    else if (ev.type === 'design' && ev.target) { setUi({ inspected: ev.target, designNote: ev.note || '' }); host.notify({ kind: 'info', title: 'Pinpoint', message: 'Element selected. Review the instruction in the Pinpoint pane, then press Send to Hermes.' }) }
   }
 
   const auto = prefs().autoReaudit
@@ -663,7 +663,7 @@ function DesignInspectorCard({ s }) {
       h('div', { key: 'sel', className: 'pp-sel', title: cleanText(t.selector, 200) }, h('b', null, cleanText(t.tag || 'element', 24)), ' · ', cleanText(t.selector, 120)),
       h('div', { key: 'grid', className: 'pp-grid' },
         h('div', { className: 'pp-kv' }, h('span', null, 'Box (w × h / pad / mar)'), h('b', null, (r.w || 0) + ' × ' + (r.h || 0) + ' · ' + (bm.padding || '0px') + ' · ' + (bm.margin || '0px'))),
-        h('div', { className: 'pp-kv' }, h('span', null, 'Typography'), h('b', null, (ty.fontFamily || 'sans') + ' ' + (ty.fontSize || '') + ' / ' + (ty. weight || ty.fontWeight || '400') + ' / ' + (ty.lineHeight || 'normal'))),
+        h('div', { className: 'pp-kv' }, h('span', null, 'Typography'), h('b', null, (ty.fontFamily || 'sans') + ' ' + (ty.fontSize || '') + ' / ' + (ty.fontWeight || '400') + ' / ' + (ty.lineHeight || 'normal'))),
         h('div', { className: 'pp-kv' }, h('span', null, 'Colors & Contrast'), h('b', null, (cl.fg || '') + ' on ' + (cl.bg || '') + (cl.contrastRatio ? ' (' + cl.contrastRatio + ':1)' : ''))),
         h('div', { className: 'pp-kv' }, h('span', null, 'Layout'), h('b', null, ((t.layout && t.layout.display) || 'block') + ' · ' + ((t.layout && t.layout.position) || 'static')))),
       h('div', { key: 'nav', className: 'pp-actions', role: 'group', 'aria-label': 'DOM tree navigation' },

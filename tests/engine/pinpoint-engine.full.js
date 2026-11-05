@@ -1099,7 +1099,8 @@ function pinpointEngine(config) {
    X.all = all;
    X.els = all;
    res.stats.elements = all.length;
-   res.presentAnchors = all.slice(0, 2000).map(anchorSig);
+   res.presentAnchors = all.slice(0, 4000).map(anchorSig);
+   res.presentComplete = all.length <= 4000;
    if (all.length > 5000) {
     var lo = X.sy - 2 * X.vh, hi = X.sy + 3 * X.vh;
     X.els = all.filter(function(e) { var r = rectOf(e); return r.y + r.h >= lo && r.y <= hi; });
@@ -1267,7 +1268,9 @@ function pinpointEngine(config) {
   return bs >= 4 ? best : null;
  }
 
- function clampN(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+ // Page scripts can dispatch synthetic clicks into the (open) overlay; only real user input may act.
+function trusted(fn) { return function(ev) { if (!ev || ev.isTrusted !== true) return; return fn.call(this, ev); }; }
+function clampN(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
  function place(ax, ay, vw, vh, placed) {
   var best = [ax, ay], bd = -1;
   for (var ring = 0; ring <= 8; ring++) {
@@ -1362,7 +1365,7 @@ function pinpointEngine(config) {
    }]].forEach(function(d) {
    var b = mk('button', d[1], d[0]);
    b.type = 'button';
-   b.addEventListener('click', d[2]);
+   b.addEventListener('click', trusted(d[2]));
    row.appendChild(b);
   });
   cardEl.appendChild(row);
@@ -1403,7 +1406,7 @@ function pinpointEngine(config) {
     if (typeof f.pin !== 'number') f.pin = idx + 1;
     var e = { f: f, el: el, num: f.pin, pin: mk('button', 'pin'), px: null, py: null };
     e.pin.type = 'button';
-    e.pin.addEventListener('click', function(ev) { ev.stopPropagation(); push({ type: 'pin-click', id: f.id }); if (openId === f.id) closeCard(); else openCard(e); });
+    e.pin.addEventListener('click', trusted(function(ev) { ev.stopPropagation(); push({ type: 'pin-click', id: f.id }); if (openId === f.id) closeCard(); else openCard(e); }));
     e.pin.addEventListener('mouseenter', function() { hoverId = f.id; showHover(e); tipEl.textContent = f.note; tipEl.hidden = false; tipEl.style.transform = 'translate(' + (e.px + 16) + 'px,' + (e.py + 16) + 'px)'; });
     e.pin.addEventListener('focus', function() { hoverId = f.id; showHover(e); });
     e.pin.addEventListener('mouseleave', hideHover);
@@ -1483,7 +1486,7 @@ function pinpointEngine(config) {
    var nb = mk('button', 'chip', n[0]);
    nb.type = 'button';
    nb.setAttribute('aria-label', n[2]);
-   nb.addEventListener('click', function(ev) { ev.stopPropagation(); inspectStep(n[1]); });
+   nb.addEventListener('click', trusted(function(ev) { ev.stopPropagation(); inspectStep(n[1]); }));
    navRow.appendChild(nb);
   });
   cardEl.appendChild(navRow);
@@ -1496,10 +1499,10 @@ function pinpointEngine(config) {
    var cb = mk('button', 'chip dchip', preset);
    cb.type = 'button';
    cb.setAttribute('aria-label', 'Preset: ' + preset);
-   cb.addEventListener('click', function(ev) {
+   cb.addEventListener('click', trusted(function(ev) {
     ev.stopPropagation();
     inp.value = inp.value ? inp.value + ' — ' + preset : preset;
-   });
+   }));
    chipRow.appendChild(cb);
   });
   cardEl.appendChild(chipRow);
@@ -1522,7 +1525,7 @@ function pinpointEngine(config) {
    var b = mk('button', d[1], d[0]);
    b.type = 'button';
    b.setAttribute('aria-label', d[2]);
-   b.addEventListener('click', d[3]);
+   b.addEventListener('click', trusted(d[3]));
    actRow.appendChild(b);
   });
   cardEl.appendChild(actRow);
@@ -1656,7 +1659,7 @@ function pinpointEngine(config) {
   checkNavigation();
   return {
    protocol: PROTOCOL, version: VERSION,
-   url: clip(location.href, 60), key: clip(lastKey, 45),
+   url: clip(location.href, 60), key: clip(lastKey, 60),
    ready: doc.readyState === 'complete', pins: pinCount(), dirty: dirty,
    vw: se().clientWidth, vh: se().clientHeight, docVersion: docVersion,
    inspecting: !!inspectMode,
