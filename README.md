@@ -101,13 +101,10 @@ See [docs/metrics.md](docs/metrics.md). Not yet generated.
 
 ## Develop
 
-```bash
-pip install pytest playwright fastapi httpx pyyaml
-playwright install chromium
-pytest tests/py tests/engine -q
-node scripts/build-desktop.mjs --check     # desktop/plugin.js is generated; edit desktop/src/app.js
-hermes plugins validate .
-```
+Use an external virtual environment and pytest basetemp. See
+[the reproducible full-tree validation recipe](docs/packaging.md) and
+`.github/workflows/ci.yml` for pinned test dependencies and the floor Hermes
+CLI installation. These checks are headless; they do not start the gateway.
 
 `desktop/plugin.js` is generated from `desktop/src/app.js` plus the engine, because disk plugins cannot import sibling files.
 
