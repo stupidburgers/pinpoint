@@ -69,7 +69,7 @@ def test_unavailable_branch(llm):
 
 def test_fix_sequence_emits_real_patch_calls_one_per_turn_streaming(llm):
     post, _ = llm
-    raw = post([msg('user', 'Pinpoint: fix pin #1 (contrast) on #hero-sub')], stream=True)
+    raw = post([msg('user', 'Pinpoint: fix pin #1 [a11y.contrast] on http://127.0.0.1:8765/')], stream=True)
     assert raw.rstrip().endswith('data: [DONE]')
     first = None
     for line in raw.splitlines():

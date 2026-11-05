@@ -3,6 +3,8 @@
 usage: python demo/rig/rig.py start|stop|status|reset-site|open-site [URL]|consent|shot PNG|eval JS   [--delete] [--no-app]
 env:   RIG   rig dir          (default C:/Users/Lucas/AppData/Local/pinpoint-rig; must be OUTSIDE %LOCALAPPDATA%/hermes)
        PORT  CDP port         (default 9444)
+       PINPOINT_PYTHON_HALF=0 omits dashboard/ from the plugin copy so /api/plugins/pinpoint/* is 404 (desktop-only mode, SPEC scenario 6;
+       measured: plugins.enabled/disabled do NOT gate dashboard routes, so the python half stays reachable)
        SITE_PORT 8765, LLM_PORT 8799, HERMES_EXE (default the installed Store package)
 start creates RIG/{home,ud,site}, writes home/config.yaml, copies the plugin into home/plugins/pinpoint, starts
 the fake LLM and the demo site (a COPY of demo/site, so scenarios never dirty the repo), launches Desktop with its OWN
@@ -108,6 +110,8 @@ def copy_plugin():
         top = os.path.abspath(d).replace('\\', '/') == ROOT
         return [n for n in names if n in EXCLUDE_ANY or (top and n in EXCLUDE_TOP)]
     shutil.copytree(ROOT, dst, ignore=ign)
+    if os.environ.get('PINPOINT_PYTHON_HALF', '1') == '0':
+        shutil.rmtree(dst + '/dashboard', ignore_errors=True)
 
 
 def reset_site():

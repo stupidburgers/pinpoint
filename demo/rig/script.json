@@ -3,26 +3,70 @@
   "turns": [
     {
       "name": "after-unavailable",
-      "when": {"last_role": "tool", "last_contains": "desktop_unavailable"},
+      "when": {
+        "last_role": "tool",
+        "last_contains": "desktop_unavailable"
+      },
       "say": "The Pinpoint preview is not open, so I could not audit the page. Open the page in the Browser pane and ask again."
     },
     {
       "name": "audit",
-      "when": {"last_role": "user", "last_regex": "(?i)audit (my|the|this) page"},
-      "calls": [{"tool": "pinpoint_audit", "args": {}}],
+      "when": {
+        "last_role": "user",
+        "last_regex": "(?i)audit (my|the|this) page"
+      },
+      "calls": [
+        {
+          "tool": "pinpoint_audit",
+          "args": {}
+        }
+      ],
       "finally": "Audit finished: score {tool.score}, {tool.counts.high} high, {tool.counts.medium} medium, {tool.counts.low} low. The pins are on the page."
     },
     {
+      "name": "fix-all",
+      "when": {
+        "last_role": "user",
+        "last_regex": "(?i)(fix everything|fix all|pinpoint: fix these)"
+      },
+      "calls": [
+        {
+          "fixes": "01-contrast"
+        },
+        {
+          "fixes": "02-css-layout"
+        },
+        {
+          "fixes": "03-html"
+        }
+      ],
+      "finally": "Applied all three fixes."
+    },
+    {
       "name": "fix-pin",
-      "when": {"last_role": "user", "last_regex": "(?i)(fix pin|pinpoint: fix)"},
-      "calls": [{"fixes": "01-contrast"}],
+      "when": {
+        "last_role": "user",
+        "last_regex": "(?i)pinpoint: fix pin #\\d+ \\[a11y\\.contrast\\]"
+      },
+      "calls": [
+        {
+          "fixes": "01-contrast"
+        }
+      ],
       "finally": "I raised the two low-contrast text colours in styles.css. Pinpoint will re-audit the page."
     },
     {
-      "name": "fix-all",
-      "when": {"last_role": "user", "last_regex": "(?i)fix (everything|all)"},
-      "calls": [{"fixes": "01-contrast"}, {"fixes": "02-css-layout"}, {"fixes": "03-html"}],
-      "finally": "Applied all three fixes."
+      "name": "fix-pin-other",
+      "when": {
+        "last_role": "user",
+        "last_regex": "(?i)pinpoint: fix pin"
+      },
+      "calls": [
+        {
+          "fixes": "03-html"
+        }
+      ],
+      "finally": "Updated index.html (alt text, labels and names). Pinpoint will re-audit the page."
     }
   ],
   "default": "ack: {last_text}"
