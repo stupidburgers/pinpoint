@@ -58,46 +58,69 @@ def test_version_matches_plugin_yaml(client):
     assert re.search(r'^version: "0.1.0"', txt, re.M)
 
 
-def test_ack_exclusive_and_pending(client, core):
-    # a request file as the tool handler would create
+def _req_file(core, rid, session="s"):
     import time
     d = core.rv_dir()
-    (d / "r1.req.json").write_text(json.dumps({"request_id": "r1", "args": {"pin": True}, "session_id": "s", "t": time.time()}))
+    (d / f"{rid}.req.json").write_text(json.dumps(
+        {"request_id": rid, "args": {"pin": True}, "session_id": session, "pv": core.PROTOCOL, "t": time.time()}))
+
+
+def _claim(client, rid, session="s", window="A"):
+    r = client.post(P + f"/ack/{rid}", json={"window": window, "session_id": session, "pv": 2})
+    assert r.status_code == 200, r.text
+    return r.json()["receipt"]
+
+
+def _wire(rid, receipt, session="s", window="A", ok=True, result=None, code=None, message=None):
+    body = {"request_id": rid, "pv": 2, "receipt": receipt, "session_id": session, "window": window, "ok": ok}
+    if ok:
+        body["result"] = result
+    else:
+        body["code"] = code
+        body["message"] = message
+    return body
+
+
+def test_ack_exclusive_and_pending(client, core):
+    # a request file as the tool handler would create
+    _req_file(core, "r1")
     p = client.get(P + "/pending").json()
     assert [x["request_id"] for x in p["pending"]] == ["r1"]
-    r = client.post(P + "/ack/r1", json={"window": "A"})
-    assert r.status_code == 200 and r.json() == {"claimed": True}
-    r = client.post(P + "/ack/r1", json={"window": "B"})
-    assert r.status_code == 409 and r.json() == {"claimed": False}
+    r = client.post(P + "/ack/r1", json={"window": "A", "session_id": "s", "pv": 2})
+    assert r.status_code == 200 and r.json()["claimed"] is True and r.json()["receipt"]
+    r = client.post(P + "/ack/r1", json={"window": "B", "session_id": "s", "pv": 2})
+    assert r.status_code == 409 and r.json()["claimed"] is False
     assert client.get(P + "/pending").json()["pending"] == []
-    assert client.post(P + "/ack/unknown", json={}).status_code == 409
+    assert client.post(P + "/ack/unknown", json={"pv": 2}).status_code == 409
 
 
 def test_result_roundtrip_files(client, core):
-    import time
+    _req_file(core, "r2", session="")
+    receipt = _claim(client, "r2", session="")
     d = core.rv_dir()
-    (d / "r2.req.json").write_text(json.dumps({"request_id": "r2", "args": {}, "t": time.time()}))
-    body = {"request_id": "r2", "ok": True, "result": AR([1])}
+    body = _wire("r2", receipt, session="", result=AR([1]))
     assert client.post(P + "/result", json=body).status_code == 200
     saved = json.loads((d / "r2.res.json").read_text("utf-8"))
     assert saved["ok"] is True and saved["result"]["score"] == 50
-    assert client.post(P + "/result", json={"request_id": "nope", "ok": False, "code": "no_preview", "message": "m"}).status_code == 404
+    assert client.post(P + "/result", json=_wire("nope", "q" * 43, ok=False, code="no_preview", message="m")).status_code == 404
 
 
 def test_result_error_form(client, core):
-    import time
+    _req_file(core, "r3", session="")
+    receipt = _claim(client, "r3", session="")
     d = core.rv_dir()
-    (d / "r3.req.json").write_text(json.dumps({"request_id": "r3", "args": {}, "t": time.time()}))
-    r = client.post(P + "/result", json={"request_id": "r3", "ok": False, "code": "consent_denied", "message": "x"})
+    r = client.post(P + "/result", json=_wire("r3", receipt, session="", ok=False, code="consent_denied", message="x"))
     assert r.status_code == 200
     assert json.loads((d / "r3.res.json").read_text("utf-8"))["code"] == "consent_denied"
 
 
-def test_result_large_300_findings(client, core):
-    import time
-    d = core.rv_dir()
-    (d / "r4.req.json").write_text(json.dumps({"request_id": "r4", "args": {}, "t": time.time()}))
-    r = client.post(P + "/result", json={"request_id": "r4", "ok": True, "result": AR(range(300))})
+def test_result_large_300_findings_fits_envelope(client, core):
+    _req_file(core, "r4", session="")
+    receipt = _claim(client, "r4", session="")
+    # 300 findings (the previous stress case) must stay well inside the 256 KiB envelope
+    import json as _json
+    assert len(_json.dumps({"request_id": "r4", "ok": True, "result": AR(range(300))}).encode("utf-8")) < core.RESULT_MAX_BYTES // 2
+    r = client.post(P + "/result", json=_wire("r4", receipt, session="", result=AR(range(300))))
     assert r.status_code == 200
 
 

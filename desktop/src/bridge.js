@@ -222,6 +222,29 @@ export function parsePending(res) {
   return list.map(x => ({ request_id: String(x.request_id || x.id || ''), args: x.args || {}, session_id: x.session_id || '' })).filter(x => x.request_id)
 }
 
+// ----- H1 rendezvous binding (SPEC 4.2 / threat contract) -----
+export const PROTOCOL = 2
+export const RESULT_MAX_BYTES = 256 * 1024
+
+// 'match': the tool's session is the one with Desktop focus, claim it.
+// 'skip': a different session is focused; leave it for that window, never claim.
+// 'unsupported': no comparable session on one or both sides; explicit policy, never any-window-wins.
+export function routeDecision(focusedSessionId, toolSessionId) {
+  if (!focusedSessionId || !toolSessionId) return 'unsupported'
+  return focusedSessionId === toolSessionId ? 'match' : 'skip'
+}
+
+// Only a resolvable owner on both sides can prove the owner changed; an unresolved owner
+// never signals success nor failure on its own (session equality is the primary gate).
+export function ownerChanged(prevOwner, nextOwner) {
+  if (!prevOwner || !nextOwner) return false
+  return prevOwner.connectionId !== nextOwner.connectionId || prevOwner.profile !== nextOwner.profile
+}
+
+export function utf8Bytes(value) {
+  return new TextEncoder().encode(String(value == null ? '' : value)).length
+}
+
 export function buildAuditOpts(args, prefs, suppress) {
   const a = args || {}
   const p = prefs || {}
