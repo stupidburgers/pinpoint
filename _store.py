@@ -94,6 +94,39 @@ def clean_finding(f):
     return out
 
 
+def _extract_coverage(result):
+    if not isinstance(result, dict):
+        return set()
+    covered = None
+    rc = result.get("rules_covered")
+    if isinstance(rc, list) and all(isinstance(x, str) for x in rc):
+        covered = set(rc)
+    else:
+        stats = result.get("stats") if isinstance(result.get("stats"), dict) else None
+        checked = stats.get("checked") if isinstance(stats, dict) else None
+        if isinstance(checked, dict) and all(isinstance(k, str) for k in checked):
+            covered = set(checked.keys())
+        else:
+            rules = result.get("rules")
+            if isinstance(rules, list) and all(isinstance(x, str) for x in rules):
+                covered = set(rules)
+    if covered is None:
+        return set()
+    errors = result.get("errors")
+    if isinstance(errors, list):
+        for e in errors:
+            if isinstance(e, dict) and isinstance(e.get("rule"), str):
+                covered.discard(e["rule"])
+    limits = result.get("limits")
+    if (isinstance(limits, list) and limits) or (isinstance(limits, str) and limits.strip()):
+        covered = set()
+    return covered
+
+
+def _rule_of_pin(pid):
+    return str(pid).split("@", 1)[0]
+
+
 def _empty_delta_result(url, key):
     return {"audit_id": None, "delta": None, "url_key": key, "findings": [], "suppressed": 0}
 
@@ -122,7 +155,11 @@ def record_audit(result, source="user"):
             suppressed = len(findings) - len(visible)
             cur = {f["id"] for f in visible}
             prev_open = {i for i, p in pins.items() if p[0] in ("open", "new")}
+            covered = _extract_coverage(result)
+            if covered is None:
+                covered = set()
             fixed = [i for i in pins if i in prev_open and i not in cur]
+            fixed = [i for i in fixed if _rule_of_pin(i) in covered]
             new = [f["id"] for f in visible if f["id"] not in pins]
             remaining = len(cur & prev_open)
             cid = c.execute("insert into audits(url_key,url,t,score,counts,source) values(?,?,?,?,?,?)",
