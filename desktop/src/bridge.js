@@ -139,13 +139,16 @@ export function createRateLimiter(opts) {
 }
 
 // ----- delta (mirror of the Python rule, used in desktop-only mode and as UI fallback) -----
-export function localDelta(prev, cur, seenIds) {
+export function localDelta(prev, cur, seenIds, coveredRules) {
   if (!prev) return null
+  const covered = Array.isArray(coveredRules) ? new Set(coveredRules) : (coveredRules instanceof Set ? coveredRules : null)
+  const allowAll = covered === null && coveredRules === undefined
+  const isCovered = (id) => allowAll ? true : (covered ? covered.has(String(id).split('@', 1)[0]) : false)
   const prevIds = new Set(prev.map(f => f.id))
   const seen = new Set(seenIds || [])
   prevIds.forEach(id => seen.add(id))
   const curIds = new Set(cur.map(f => f.id))
-  const fixed = [...prevIds].filter(id => !curIds.has(id))
+  const fixed = [...prevIds].filter(id => !curIds.has(id) && isCovered(id))
   const added = [...curIds].filter(id => !seen.has(id))
   const remaining = [...curIds].filter(id => prevIds.has(id)).length
   return { fixed, new: added, remaining }

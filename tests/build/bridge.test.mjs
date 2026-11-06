@@ -116,7 +116,7 @@ test('urlKey matches tests/shared/url_key_cases.json when package A has produced
 test('localDelta: fixed / new / remaining; null without a previous audit', () => {
   const f = id => ({ id })
   assert.equal(B.localDelta(null, [f('a')]), null)
-  const d = B.localDelta([f('a'), f('b'), f('c')], [f('b'), f('c'), f('d')], ['z'])
+  const d = B.localDelta([f('a'), f('b'), f('c')], [f('b'), f('c'), f('d')], ['z'], ['a','b','c','d'])
   assert.deepEqual(d, { fixed: ['a'], new: ['d'], remaining: 2 })
   assert.deepEqual(B.localDelta([f('a')], [f('z')], ['z']).new, [])   // seen before: not new
 })
