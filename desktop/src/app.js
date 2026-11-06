@@ -438,7 +438,7 @@ const CSS = `
   display:flex;flex-direction:column;height:100%;min-height:0;font-family:var(--dt-font-sans,inherit);font-size:12px;line-height:1.45;color:var(--ui-text-primary)}
 .pp *{box-sizing:border-box}
 .pp button{font:inherit;color:inherit;cursor:pointer}
-.pp button:focus-visible,.pp-chip:focus-visible{outline:2px solid var(--ui-accent);outline-offset:2px;border-radius:6px}
+.pp button:focus-visible,.pp-chip:focus-visible,.pp-main:focus-visible,.pp-opt:focus-within,.pp-row:focus-within{outline:2px solid var(--ui-accent);outline-offset:2px;border-radius:6px}
 .pp-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--ui-stroke-tertiary,var(--dt-border))}
 .pp-title{font-size:13px;font-weight:650;letter-spacing:.01em;display:flex;align-items:center;gap:6px}
 .pp-title svg{width:15px;height:15px;color:var(--ui-accent)}
