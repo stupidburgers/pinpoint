@@ -203,14 +203,17 @@ async function doAudit({ source, args, deliver }) {
       const posted = await storePost('/audit', { result: res, source })
       delta = normalizeDelta(posted && posted.delta)
     }
-    if (!delta) delta = localDelta(prev.findings, res.findings, prev.seen)
+    if (!delta) delta = localDelta(prev.findings, res.findings, prev.seen, res.rules_covered || (res.stats && res.stats.checked ? Object.keys(res.stats.checked) : []))
     const fixedF = delta && prev.findings ? prev.findings.filter(f => delta.fixed.includes(f.id)) : []
+    const curIds = new Set(res.findings.map(f => f.id))
+    const fixedIds = new Set(fixedF.map(f => f.id))
+    const unresolved = prev.findings ? prev.findings.filter(f => f && f.id && !curIds.has(f.id) && !fixedIds.has(f.id) && !prev.dismissed.some(d => d.id === f.id)) : []
     const prevScore = delta && typeof delta.prev_score === 'number' ? delta.prev_score : prev.score != null ? prev.score : null
 
     let lost = []
     const pin = a.pin !== false
     if (pin) {
-      const { list, statuses } = applyPins(res.findings, fixedF, delta)
+      const { list, statuses } = applyPins([...res.findings, ...unresolved], fixedF, delta)
       const rr = (await callApi('render', [list, { statuses, pinLimit: 60 }])).v
       lost = (rr && rr.lost) || []
     } else {
@@ -220,8 +223,8 @@ async function doAudit({ source, args, deliver }) {
     M.auditedVersion = M.lastVersion = after ? after.docVersion : -1
     M.dirtySince = 0
 
-    M.mem[key] = { findings: res.findings, dismissed: prev.dismissed, seen: new Set([...prev.seen, ...res.findings.map(f => f.id)]), score: res.score }
-    if (!pyOn()) localSave(key, { findings: res.findings, dismissed: prev.dismissed, seen: [...M.mem[key].seen], score: res.score })
+    M.mem[key] = { findings: [...res.findings, ...unresolved], dismissed: prev.dismissed, seen: new Set([...prev.seen, ...res.findings.map(f => f.id)]), score: res.score }
+    if (!pyOn()) localSave(key, { findings: [...res.findings, ...unresolved], dismissed: prev.dismissed, seen: [...M.mem[key].seen], score: res.score })
     C.storage.set('lastKey', key); C.storage.set('active', true)
     M.active = true; M.lastMissingHref = ''; M.resume = null; M.skip = 0
     if (M.fadeUndo) { M.fadeUndo(); M.fadeUndo = null }
@@ -231,7 +234,7 @@ async function doAudit({ source, args, deliver }) {
       M.fadeUndo = C.setTimeout(() => {
         if (M.seq !== mySeq) return
         void (async () => {
-          try { const { list, statuses } = applyPins(res.findings, [], delta); await callApi('render', [list, { statuses, pinLimit: 60 }]); setUi({ fixed: [] }) } catch (e) { /* page gone */ }
+          try { const { list, statuses } = applyPins([...res.findings, ...unresolved], [], delta); await callApi('render', [list, { statuses, pinLimit: 60 }]); setUi({ fixed: [] }) } catch (e) { /* page gone */ }
         })()
       }, FIXED_FADE_MS)
     }
