@@ -96,7 +96,7 @@ def clean_finding(f):
 
 def _extract_coverage(result):
     if not isinstance(result, dict):
-        return None
+        return set()
     covered = None
     rc = result.get("rules_covered")
     if isinstance(rc, list) and all(isinstance(x, str) for x in rc):
@@ -111,7 +111,7 @@ def _extract_coverage(result):
             if isinstance(rules, list) and all(isinstance(x, str) for x in rules):
                 covered = set(rules)
     if covered is None:
-        return None
+        return set()
     errors = result.get("errors")
     if isinstance(errors, list):
         for e in errors:
@@ -156,9 +156,10 @@ def record_audit(result, source="user"):
             cur = {f["id"] for f in visible}
             prev_open = {i for i, p in pins.items() if p[0] in ("open", "new")}
             covered = _extract_coverage(result)
+            if covered is None:
+                covered = set()
             fixed = [i for i in pins if i in prev_open and i not in cur]
-            if covered is not None:
-                fixed = [i for i in fixed if _rule_of_pin(i) in covered]
+            fixed = [i for i in fixed if _rule_of_pin(i) in covered]
             new = [f["id"] for f in visible if f["id"] not in pins]
             remaining = len(cur & prev_open)
             cid = c.execute("insert into audits(url_key,url,t,score,counts,source) values(?,?,?,?,?,?)",
