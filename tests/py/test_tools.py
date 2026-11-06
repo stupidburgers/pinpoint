@@ -24,7 +24,7 @@ def AR(findings, score=62, url=URL, limits=None):
     for f in findings:
         counts[f["sev"]] += 1
     return {"protocol": 1, "url": url, "key": url, "score": score, "counts": counts, "findings": findings,
-            "limits": limits or [], "errors": []}
+            "limits": limits or [], "errors": [], "rules_covered": ["a11y.contrast"]}
 
 
 @pytest.fixture
