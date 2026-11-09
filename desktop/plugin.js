@@ -20,7 +20,7 @@ const BAD_CHARS = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e\u2066-\
 const PROMPT_DELIMS = /<\s*\/?\s*(?:system|assistant|user|hermes|control|prompt)[^>]*>|\[\s*\/?\s*(?:USER_MESSAGE|SYSTEM|ASSISTANT|OUT-OF-BAND)[^\]]*\]|<!--[\s\S]*?-->/gi
 
 function stripDelims(text) {
-  // Re-apply until stable so nested forms like "<<system>system>" cannot reassemble a delimiter.
+  // Re-apply until stable so nested or doubled delimiter forms cannot reassemble a delimiter.
   let cur = text
   for (let i = 0; i < 8; i++) {
     const next = cur.replace(PROMPT_DELIMS, ' ')
