@@ -6,12 +6,13 @@ import pytest
 
 CASES = json.loads((Path(__file__).resolve().parents[1] / "shared" / "audit_result_cases.json").read_text("utf-8"))
 URL = "https://proof.invalid/"
-F = {"id": "a11y.control-name@412214a1", "rule": "a11y.control-name", "sev": "high"}
+F = {"id": "a11y.control-name@412214a1", "rule": "a11y.control-name", "sev": "high", "anchor": {"tag": "button", "sig": "button|#buy|body"}}
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c["name"])
 def test_raw_result_cannot_falsely_fix(store, case):
-    base = {"url": URL, "score": 100, "findings": [], "rules_covered": [F["rule"]]}
+    base = {"url": URL, "score": 100, "findings": [], "rules_covered": [F["rule"]], "stats": {"checked": {}, "skipped": {}},
+            "audit_options": {"contrast": "AA", "tapAdvisory": 44}, "presentComplete": True, "presentAnchors": ["button|#buy|body"]}
     store.record_audit({**base, "findings": [F]})
     incoming = {**base, **case["patch"]}
     for field in case.get("omit", []):

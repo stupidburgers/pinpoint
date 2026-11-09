@@ -15,12 +15,14 @@ URL = "http://localhost:5173/"
 
 def F(n, sev="high"):
     return {"id": f"a11y.contrast@{n:08x}", "pin": n, "rule": "a11y.contrast", "sev": sev, "selector": f"#e{n}",
-            "label": "b", "note": "n", "fix": "f", "measured": {"ratio": 1.9}}
+            "label": "b", "note": "n", "fix": "f", "measured": {"ratio": 1.9}, "anchor": {"tag": "button", "sig": f"button|#e{n}|body"}}
 
 
-def AR(ns, score=50):
+def AR(ns, score=50, present=None):
     fs = [F(n) for n in ns]
-    return {"url": URL, "score": score, "counts": {"high": len(fs), "medium": 0, "low": 0}, "findings": fs, "rules_covered": ["a11y.contrast"]}
+    return {"url": URL, "score": score, "counts": {"high": len(fs), "medium": 0, "low": 0}, "findings": fs, "rules_covered": ["a11y.contrast"],
+            "stats": {"checked": {}, "skipped": {}}, "audit_options": {"contrast": "AA", "tapAdvisory": 44}, "presentComplete": True,
+            "presentAnchors": [f"button|#e{n}|body" for n in (ns if present is None else present)]}
 
 
 @pytest.fixture
@@ -108,7 +110,7 @@ def test_result_large_300_findings(client, core):
 def test_audit_store_and_delta(client):
     r = client.post(P + "/audit", json={"result": AR([1, 2, 3], 40), "source": "user"})
     assert r.status_code == 200 and r.json()["audit_id"] == 1 and r.json()["delta"] is None
-    r = client.post(P + "/audit", json={"result": AR([3], 80), "source": "auto"})
+    r = client.post(P + "/audit", json={"result": AR([3], 80, present=[1, 2, 3]), "source": "auto"})
     d = r.json()["delta"]
     assert d["prev_score"] == 40 and len(d["fixed"]) == 2 and d["remaining"] == 1
     s = client.get(P + "/store", params={"url_key": "http://localhost:5173"}).json()
@@ -128,8 +130,9 @@ RESULT_CASES = json.loads((ROOT / "tests" / "shared" / "audit_result_cases.json"
 
 @pytest.mark.parametrize("case", RESULT_CASES, ids=lambda c: c["name"])
 def test_raw_result_boundary_through_rest(client, case):
-    f = {"id": "a11y.control-name@412214a1", "rule": "a11y.control-name", "sev": "high"}
-    base = {"url": URL, "score": 100, "findings": [], "rules_covered": [f["rule"]]}
+    f = {"id": "a11y.control-name@412214a1", "rule": "a11y.control-name", "sev": "high", "anchor": {"tag": "button", "sig": "button|#buy|body"}}
+    base = {"url": URL, "score": 100, "findings": [], "rules_covered": [f["rule"]], "stats": {"checked": {}, "skipped": {}},
+            "audit_options": {"contrast": "AA", "tapAdvisory": 44}, "presentComplete": True, "presentAnchors": ["button|#buy|body"]}
     assert client.post(P + "/audit", json={"result": {**base, "findings": [f]}}).status_code == 200
     before = client.get(P + "/store", params={"url_key": URL}).json()
     incoming = {**base, **case["patch"]}

@@ -23,14 +23,24 @@ def test_url_key_garbage(store):
 URL = "http://localhost:5173/"
 
 
+AO = {"contrast": "AA", "tapAdvisory": 44}
+
+
+def SIG(n):
+    return f"button|#e{n}|body"
+
+
 def F(n, sev="high", rule="a11y.contrast", label="btn"):
     return {"id": f"{rule}@{n:08x}", "rule": rule, "sev": sev, "selector": f"#e{n}", "label": label,
-            "note": "n", "fix": "f", "measured": {"ratio": 1.9}, "rect": {"x": 0, "y": 0, "w": 1, "h": 1}}
+            "note": "n", "fix": "f", "measured": {"ratio": 1.9}, "rect": {"x": 0, "y": 0, "w": 1, "h": 1},
+            "anchor": {"tag": "button", "sig": SIG(n)}}
 
 
-def audit(ns, score=50, url=URL):
+def audit(ns, score=50, url=URL, present=None):
     fs = [F(n) for n in ns]
-    return {"url": url, "score": score, "counts": {"high": len(fs), "medium": 0, "low": 0}, "findings": fs, "rules_covered": ["a11y.contrast"]}
+    return {"url": url, "score": score, "counts": {"high": len(fs), "medium": 0, "low": 0}, "findings": fs, "rules_covered": ["a11y.contrast"],
+            "stats": {"checked": {"a11y.contrast": 1}, "skipped": {}}, "audit_options": AO, "presentComplete": True,
+            "presentAnchors": [SIG(n) for n in (ns if present is None else present)]}
 
 
 @pytest.fixture
@@ -64,7 +74,7 @@ def test_first_audit_has_no_delta(store, clock):
 def test_delta_fixed_new_remaining(store, clock):
     store.record_audit(audit([1, 2, 3], 40), "user")
     clock()
-    r = store.record_audit(audit([3, 4], 70), "auto")
+    r = store.record_audit(audit([3, 4], 70, present=[1, 2, 3, 4]), "auto")
     d = r["delta"]
     assert d["prev_score"] == 40
     assert sorted(d["fixed"]) == [F(1)["id"], F(2)["id"]]
@@ -199,7 +209,7 @@ def test_scope_change_does_not_falsely_fix_untouched_finding(store, clock):
         "score": 80,
         "counts": {"high": 1, "medium": 0, "low": 0},
         "findings": [f_ctrl],
-        "stats": {"checked": {"a11y.control-name": 1}},
+        "stats": {"checked": {"a11y.control-name": 1}, "skipped": {}}, "audit_options": AO, "presentComplete": True, "presentAnchors": [SIG(1)],
         "rules_covered": ["a11y.control-name"],
     }
     r1 = store.record_audit(audit1, "user")
@@ -214,7 +224,7 @@ def test_scope_change_does_not_falsely_fix_untouched_finding(store, clock):
         "score": 100,
         "counts": {"high": 0, "medium": 0, "low": 0},
         "findings": [],
-        "stats": {"checked": {"a11y.img-alt": 0}},
+        "stats": {"checked": {"a11y.img-alt": 0}, "skipped": {}}, "audit_options": AO, "presentComplete": True, "presentAnchors": [SIG(1)],
         "rules_covered": ["a11y.img-alt"],
     }
     r2 = store.record_audit(audit2, "auto")
@@ -237,7 +247,7 @@ def test_same_scope_repair_clears_finding(store, clock):
         "score": 80,
         "counts": {"high": 1, "medium": 0, "low": 0},
         "findings": [f_ctrl],
-        "stats": {"checked": {"a11y.control-name": 1}},
+        "stats": {"checked": {"a11y.control-name": 1}, "skipped": {}}, "audit_options": AO, "presentComplete": True, "presentAnchors": [SIG(1)],
         "rules_covered": ["a11y.control-name"],
     }
     store.record_audit(audit1, "user")
@@ -249,7 +259,7 @@ def test_same_scope_repair_clears_finding(store, clock):
         "score": 100,
         "counts": {"high": 0, "medium": 0, "low": 0},
         "findings": [],
-        "stats": {"checked": {"a11y.control-name": 1}},
+        "stats": {"checked": {"a11y.control-name": 1}, "skipped": {}}, "audit_options": AO, "presentComplete": True, "presentAnchors": [SIG(1)],
         "rules_covered": ["a11y.control-name"],
     }
     r2 = store.record_audit(audit2, "auto")

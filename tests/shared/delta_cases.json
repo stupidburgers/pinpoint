@@ -1,0 +1,3291 @@
+{
+ "url": "https://delta.invalid/page",
+ "note": "Shared by tests/py/test_delta_cases.py and tests/build/delta-cases.test.mjs. Truth table: docs/delta-semantics.md.",
+ "cases": [
+  {
+   "name": "first_audit_has_no_delta",
+   "row": "first valid audit",
+   "setup": null,
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [],
+    "new": [],
+    "remaining": 0
+   }
+  },
+  {
+   "name": "invalid_findings_not_list",
+   "row": "invalid report",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": null,
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "rejected": true
+   }
+  },
+  {
+   "name": "invalid_finding_identity",
+   "row": "invalid report",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [
+     {
+      "rule": "a11y.control-name"
+     }
+    ],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "rejected": true
+   }
+  },
+  {
+   "name": "invalid_finding_blank_id",
+   "row": "invalid report",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [
+     {
+      "id": "  ",
+      "rule": "a11y.control-name"
+     }
+    ],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "rejected": true
+   }
+  },
+  {
+   "name": "dismissed_stays_dismissed",
+   "row": "prior dismissed",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "dismissed"
+    }
+   }
+  },
+  {
+   "name": "dismissed_reported_again_stays_dismissed",
+   "row": "prior dismissed",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "dismissed"
+    }
+   }
+  },
+  {
+   "name": "current_finding_still_open",
+   "row": "current id present",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [],
+    "new": [],
+    "remaining": 1,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "fixed_complete_comparable_audit",
+   "row": "sig count 1, measured",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "gone": [],
+    "not_rechecked": [],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "fixed"
+    }
+   }
+  },
+  {
+   "name": "fixed_plus_new_finding",
+   "row": "sig count 1, measured",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [
+     {
+      "id": "a11y.control-name@bbbbbbbb",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "a|#new|body"
+      }
+     }
+    ],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "gone": [],
+    "not_rechecked": [],
+    "new": [
+     "a11y.control-name@bbbbbbbb"
+    ],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "fixed",
+     "a11y.control-name@bbbbbbbb": "new"
+    }
+   }
+  },
+  {
+   "name": "other_rule_error_does_not_block",
+   "row": "sig count 1, measured",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name",
+     "a11y.img-alt"
+    ],
+    "errors": [
+     {
+      "rule": "a11y.img-alt",
+      "message": "boom"
+     }
+    ],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "gone": [],
+    "not_rechecked": [],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "fixed"
+    }
+   }
+  },
+  {
+   "name": "deleted_element_is_gone_not_fixed",
+   "row": "sig count 0",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "div|#other|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "not_rechecked": [],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "gone"
+    }
+   }
+  },
+  {
+   "name": "gone_with_empty_complete_inventory",
+   "row": "sig count 0",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "not_rechecked": [],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "gone"
+    }
+   }
+  },
+  {
+   "name": "gone_even_if_rule_skipped_elements",
+   "row": "sig count 0",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {
+      "a11y.control-name": {
+       "overlap": 2
+      }
+     }
+    },
+    "presentAnchors": [
+     "div|#other|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "not_rechecked": [],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "gone"
+    }
+   }
+  },
+  {
+   "name": "options_changed_contrast",
+   "row": "options changed",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AAA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "options_changed_tap_advisory",
+   "row": "options changed",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 0
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "options_missing",
+   "row": "options changed",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "options_malformed",
+   "row": "options changed",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": "44"
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "prior_options_missing",
+   "row": "options changed",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": null
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "coverage_missing",
+   "row": "coverage missing",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "coverage_missing_legacy_checked_map_is_not_evidence",
+   "row": "coverage missing",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 9
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "coverage_only_requested_rules",
+   "row": "only requested rules",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    },
+    "rules": [
+     "a11y.control-name"
+    ]
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "coverage_not_a_list",
+   "row": "coverage malformed",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": "a11y.control-name",
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "coverage_null",
+   "row": "coverage malformed",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": null,
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "coverage_bad_entry",
+   "row": "coverage malformed",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name",
+     7
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "coverage_empty",
+   "row": "coverage malformed",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "coverage_other_rule_only",
+   "row": "coverage missing",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.img-alt"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "own_rule_error",
+   "row": "own rule error",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [
+     {
+      "rule": "a11y.control-name",
+      "message": "boom"
+     }
+    ],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "engine_error_score_100",
+   "row": "engine error",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [
+     {
+      "rule": "engine",
+      "message": "boom"
+     }
+    ],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "truncated_flag",
+   "row": "truncation",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": true,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "truncated_limit_text",
+   "row": "truncation",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [
+     "findings truncated at 200"
+    ],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "nonempty_limit",
+   "row": "limits",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [
+     "large page (6000 elements): audited the viewport +- 2 screens only"
+    ],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "malformed_limits_null",
+   "row": "limits",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": null,
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "malformed_limits_entry",
+   "row": "limits",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [
+     3
+    ],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "malformed_errors_null",
+   "row": "limits",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": null,
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "malformed_errors_entry",
+   "row": "limits",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [
+     null
+    ],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "malformed_errors_blank_rule",
+   "row": "limits",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [
+     {
+      "rule": " "
+     }
+    ],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "presence_missing",
+   "row": "incomplete presence",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "presence_incomplete_flag_false",
+   "row": "incomplete presence",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [],
+    "presentComplete": false,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "presence_complete_flag_missing",
+   "row": "incomplete presence",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "presence_complete_flag_not_true",
+   "row": "incomplete presence",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": 1,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "presence_malformed_entry",
+   "row": "incomplete presence",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body",
+     5
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "presence_not_a_list",
+   "row": "incomplete presence",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": "button|#buy|body",
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "duplicate_signature",
+   "row": "sig duplicate",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body",
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "prior_signature_missing",
+   "row": "sig missing",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "skipped_elements_block_fixed",
+   "row": "target not measured",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {
+      "a11y.control-name": {
+       "overlap": 1
+      }
+     }
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "skipped_malformed",
+   "row": "target not measured",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": "x"
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "stats_missing",
+   "row": "target not measured",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "skipped_other_rule_does_not_block",
+   "row": "sig count 1, measured",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {
+      "a11y.img-alt": {
+       "image": 3
+      }
+     }
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "gone": [],
+    "not_rechecked": [],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "fixed"
+    }
+   }
+  },
+  {
+   "name": "mixed_fixed_gone_not_rechecked_remaining",
+   "row": "mixed",
+   "setup": {
+    "score": 70,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     },
+     {
+      "id": "a11y.control-name@cccccccc",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "a|#gone|body"
+      }
+     },
+     {
+      "id": "a11y.img-alt@dddddddd",
+      "rule": "a11y.img-alt",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "img|#hero|body"
+      }
+     },
+     {
+      "id": "a11y.control-name@eeeeeeee",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "a|#keep|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 90,
+    "findings": [
+     {
+      "id": "a11y.control-name@eeeeeeee",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "a|#keep|body"
+      }
+     }
+    ],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body",
+     "a|#keep|body",
+     "img|#hero|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "gone": [
+     "a11y.control-name@cccccccc"
+    ],
+    "not_rechecked": [
+     "a11y.img-alt@dddddddd"
+    ],
+    "new": [],
+    "remaining": 1,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "fixed",
+     "a11y.control-name@cccccccc": "gone",
+     "a11y.img-alt@dddddddd": "open",
+     "a11y.control-name@eeeeeeee": "open"
+    }
+   }
+  }
+ ],
+ "receipts": [
+  {
+   "name": "all_categories",
+   "prev_score": 80,
+   "score": 100,
+   "fixed": [
+    "a@1"
+   ],
+   "gone": [
+    "b@1"
+   ],
+   "remaining": 2,
+   "not_rechecked": [
+    "c@1"
+   ],
+   "text": "**Pinpoint receipt** - score 80 -> 100\n- fixed (no longer reported, same element signature still present; NOT re-measured): 1\n  - `a@1`\n- gone (element signature no longer on the page; NOT proof of a fix): 1\n  - `b@1`\n- not rechecked (kept open): 1\n  - `c@1`\n- still failing: 2"
+  },
+  {
+   "name": "empty_unknown_score",
+   "prev_score": null,
+   "score": 55,
+   "fixed": [],
+   "gone": [],
+   "remaining": 0,
+   "not_rechecked": [],
+   "text": "**Pinpoint receipt** - score ? -> 55\n- fixed (no longer reported, same element signature still present; NOT re-measured): 0\n- gone (element signature no longer on the page; NOT proof of a fix): 0\n- not rechecked (kept open): 0\n- still failing: 0"
+  }
+ ]
+}

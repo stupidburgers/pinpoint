@@ -16,15 +16,17 @@ def F(n, sev="high", rule="a11y.contrast", label="button.cta 'Go'"):
     return {"id": f"{rule}@{n:08x}", "pin": n, "rule": rule, "sev": sev, "selector": f"#e{n}", "label": label,
             "note": "Contrast 1.92:1, needs 4.5:1", "fix": "Darken text",
             "measured": {"ratio": 1.92, "need": 4.5, "fg": "#aaaaaa", "bg": "#ffffff"},
-            "rect": {"x": 1, "y": 2, "w": 3, "h": 4}, "anchor": {"tag": "button", "path": "body>button"}}
+            "rect": {"x": 1, "y": 2, "w": 3, "h": 4}, "anchor": {"tag": "button", "path": "body>button", "sig": f"button|#e{n}|body"}}
 
 
-def AR(findings, score=62, url=URL, limits=None):
+def AR(findings, score=62, url=URL, limits=None, present_extra=()):
     counts = {"high": 0, "medium": 0, "low": 0}
     for f in findings:
         counts[f["sev"]] += 1
     return {"protocol": 1, "url": url, "key": url, "score": score, "counts": counts, "findings": findings,
-            "limits": limits or [], "errors": [], "rules_covered": RULES}
+            "limits": limits or [], "errors": [], "rules_covered": RULES, "stats": {"checked": {}, "skipped": {}},
+            "audit_options": {"contrast": "AA", "tapAdvisory": 44}, "presentComplete": True,
+            "presentAnchors": [f["anchor"]["sig"] for f in list(findings) + list(present_extra)]}
 
 
 @pytest.fixture
@@ -82,7 +84,7 @@ def test_audit_ok_shape(tools, desk):
 
 def test_audit_delta_embedded(tools, desk):
     call(tools, {})
-    desk.reply = {"ok": True, "result": AR([F(1), F(4)], 80)}
+    desk.reply = {"ok": True, "result": AR([F(1), F(4)], 80, present_extra=[F(2), F(3)])}
     r = call(tools, {})
     assert r["delta"]["prev_score"] == 62
     assert r["delta"]["fixed"] == [F(2)["id"], F(3)["id"]] or sorted(r["delta"]["fixed"]) == sorted([F(2)["id"], F(3)["id"]])
