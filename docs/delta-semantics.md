@@ -17,7 +17,7 @@ One definition, implemented identically in `_store.py` (Python store, REST `/aud
 | 0 | Report invalid: findings not a list, or a finding without a non-blank string `id` | Rejected; nothing changes, no delta |
 | 1 | Pin was dismissed | Stays dismissed |
 | 2 | Pin id is reported again | Open (a fixed/gone pin that returns is reopened) |
-| 3 | Rule coverage missing/malformed (`rules_covered` or legacy `stats.checked`), rule not covered, or rule has an error | not rechecked |
+| 3 | Rule coverage missing/malformed (only the engine's `rules_covered` counts), rule not covered, or rule has an error | not rechecked |
 | 4 | Engine error, truncation, or any non-empty `limits`; malformed `errors`/`limits` | not rechecked |
 | 5 | Audit options (`audit_options`: contrast level, tap advisory) missing or different from those of the earlier finding | not rechecked |
 | 6 | `presentAnchors` missing, malformed, or `presentComplete` not `true` (an inventory over 2500 elements is incomplete) | not rechecked |
@@ -26,7 +26,7 @@ One definition, implemented identically in `_store.py` (Python store, REST `/aud
 | 9 | Signature count 1 and the rule reports skipped elements (`stats.skipped[rule]`), or `stats.skipped` is malformed | not rechecked |
 | 10 | Signature count 1 | **fixed** |
 
-Requested `rules` and the rules of returned findings never count as coverage. An explicitly supplied invalid `rules_covered` is not repaired by falling back to `stats.checked`. Old rows need no migration: a pin's rule comes from the finding or from its id prefix; pins stored before `audit_options` existed are never closed.
+Requested `rules` and the rules of returned findings never count as coverage. The legacy `stats.checked` map is not coverage (the engine increments it before an element can be skipped) and an invalid `rules_covered` is never repaired by falling back to it. Old rows need no migration: a pin's rule comes from the finding or from its id prefix; pins stored before `audit_options` existed are never closed.
 
 ## Limits you should know
 

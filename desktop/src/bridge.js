@@ -158,25 +158,63 @@ export function usableFindings(findings) {
   return Array.isArray(findings) && findings.every(f => f && typeof f === 'object' && !Array.isArray(f) && typeof f.id === 'string' && f.id.trim())
 }
 
+export function optionsSig(o) {
+  // 'AA|44' for valid audit options (contrast level + tap advisory), else null. Mirrors _store.py options_sig.
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return null
+  const c = o.contrast, t = o.tapAdvisory
+  if (c !== 'AA' && c !== 'AAA') return null
+  if (typeof t !== 'number' || !Number.isFinite(t) || t < 0) return null
+  return c + '|' + t
+}
+
+// Host-owned stamp: the options an audit ran with, never a page-supplied value.
+export function stampAuditOptions(findings, auditOptions) {
+  const sig = optionsSig(auditOptions)
+  return (findings || []).map(f => {
+    const g = { ...f }
+    delete g.audit_sig
+    if (sig) g.audit_sig = sig
+    return g
+  })
+}
+
+const truncatedFlag = v => v !== undefined && v !== null && v !== false && v !== 0
+
+// Rules whose absence of findings may count: ONLY the engine's actual rules_covered. Requested rules, returned
+// findings and stats.checked (incremented before an element is skipped) are not evidence. Any engine error,
+// truncation, non-empty limit or malformed errors/limits metadata empties the result. Mirrors _store.py _extract_coverage.
 export function auditCoverage(res) {
   if (!res || !usableFindings(res.findings)) return []
   const errors = Object.prototype.hasOwnProperty.call(res, 'errors') ? res.errors : []
   const limits = Object.prototype.hasOwnProperty.call(res, 'limits') ? res.limits : []
   if (!Array.isArray(errors) || !Array.isArray(limits)) return []
-  if (limits.some(x => typeof x !== 'string' || !x.trim()) || res.truncated || limits.some(x => /truncat/i.test(x))) return []
+  if (limits.some(x => typeof x !== 'string' || !x.trim()) || truncatedFlag(res.truncated) || limits.length > 0) return []
   if (errors.some(e => !e || typeof e !== 'object' || Array.isArray(e) || typeof e.rule !== 'string' || !e.rule.trim() || e.rule === 'engine')) return []
   const errored = new Set(errors.map(e => e.rule))
-  let covered = []
-  if (Object.prototype.hasOwnProperty.call(res, 'rules_covered')) {
-    if (!Array.isArray(res.rules_covered) || !res.rules_covered.every(r => typeof r === 'string' && r)) return []
-    covered = res.rules_covered
-  } else {
-    const checked = res.stats && res.stats.checked
-    if (checked && typeof checked === 'object' && !Array.isArray(checked)) {
-      covered = Object.keys(checked).filter(r => r && typeof checked[r] === 'number' && Number.isFinite(checked[r]) && checked[r] >= 0)
-    }
+  if (!Object.prototype.hasOwnProperty.call(res, 'rules_covered')) return []
+  if (!Array.isArray(res.rules_covered) || !res.rules_covered.every(r => typeof r === 'string' && r)) return []
+  return res.rules_covered.filter(r => !errored.has(r))
+}
+
+// Rules that skipped elements (stats.skipped), or null when the field is missing/malformed.
+function skippedRules(res) {
+  const sk = res && res.stats && typeof res.stats === 'object' ? res.stats.skipped : undefined
+  if (!sk || typeof sk !== 'object' || Array.isArray(sk)) return null
+  const out = new Set()
+  for (const rule of Object.keys(sk)) {
+    const v = sk[rule]
+    if (!v || typeof v !== 'object' || Array.isArray(v) || Object.keys(v).length > 0) out.add(rule)
   }
-  return covered.filter(r => !errored.has(r))
+  return out
+}
+
+// Complete element inventory as a signature -> count map, or null when missing/malformed/incomplete.
+function presenceCounts(res) {
+  const pa = res && res.presentAnchors
+  if (!Array.isArray(pa) || !pa.every(x => typeof x === 'string') || res.presentComplete !== true) return null
+  const counts = new Map()
+  for (const x of pa) counts.set(x, (counts.get(x) || 0) + 1)
+  return counts
 }
 
 export function classifyAuditState(res) {
@@ -212,34 +250,64 @@ export function classifyAuditState(res) {
   return { state: 'complete', covered, reason: '' }
 }
 
-export function localDelta(prev, cur, seenIds, coveredRules) {
+export function formatReceipt(prevScore, score, fixed, gone, remaining, notRechecked) {
+  // Mirrors _store.py format_receipt (shared text cases in tests/shared/delta_cases.json).
+  const sc = v => (v === null || v === undefined ? '?' : String(v))
+  const lines = ['**Pinpoint receipt** - score ' + sc(prevScore) + ' -> ' + sc(score),
+    '- fixed (no longer reported, same element signature still present; NOT re-measured): ' + fixed.length]
+  fixed.slice(0, 10).forEach(i => lines.push('  - `' + i + '`'))
+  lines.push('- gone (element signature no longer on the page; NOT proof of a fix): ' + gone.length)
+  gone.slice(0, 10).forEach(i => lines.push('  - `' + i + '`'))
+  lines.push('- not rechecked (kept open): ' + notRechecked.length)
+  notRechecked.slice(0, 10).forEach(i => lines.push('  - `' + i + '`'))
+  lines.push('- still failing: ' + remaining)
+  return lines.join('\n')
+}
+
+const pinRule = f => (f && typeof f.rule === 'string' && f.rule) || (f && typeof f.id === 'string' && f.id.includes('@') ? f.id.split('@')[0] : '')
+
+// Verdict for an earlier open pin the new audit did not report: 'fixed' | 'gone' | 'not_rechecked'.
+// docs/delta-semantics.md rows 3-10; mirrors _store.py classify_absent exactly.
+function classifyAbsent(f, ctx) {
+  const rule = pinRule(f)
+  if (!rule || !ctx.coverage.has(rule)) return 'not_rechecked'
+  const prior = typeof f.audit_sig === 'string' && f.audit_sig ? f.audit_sig : null
+  if (prior === null || ctx.options === null || prior !== ctx.options) return 'not_rechecked'
+  if (!ctx.present) return 'not_rechecked'
+  const sig = f.anchor && typeof f.anchor.sig === 'string' && f.anchor.sig ? f.anchor.sig : null
+  const n = sig ? (ctx.present.get(sig) || 0) : 0
+  if (!sig || n > 1) return 'not_rechecked'
+  if (n === 0) return 'gone'
+  if (ctx.skipped === null || ctx.skipped.has(rule)) return 'not_rechecked'
+  return 'fixed'
+}
+
+// prev: earlier open findings (stamped with audit_sig); cur: this audit's findings; seenIds: every id ever pinned
+// here (incl. dismissed); result: the whole raw engine report (coverage, presence, options); prevScore: number|null.
+// Returns null without a previous audit or for an unusable report (nothing may be inferred from it).
+export function localDelta(prev, cur, seenIds, result, prevScore) {
   if (!prev) return null
+  if (!usableFindings(cur) || !usableFindings(prev)) return null
+  const ev = result && typeof result === 'object' && !Array.isArray(result) ? result : null
   const prevIds = new Set(prev.map(f => f.id))
   const seen = new Set(seenIds || [])
   prevIds.forEach(id => seen.add(id))
   const curIds = new Set(cur.map(f => f.id))
-  const coveredSet = new Set(Array.isArray(coveredRules) && coveredRules.every(r => typeof r === 'string' && r) ? coveredRules : [])
-
-  const fixed = []
-  const notRechecked = []
-
+  const ctx = ev && usableFindings(ev.findings)
+    ? { coverage: new Set(auditCoverage(ev)), skipped: skippedRules(ev), present: presenceCounts(ev), options: optionsSig(ev.audit_options) }
+    : { coverage: new Set(), skipped: null, present: null, options: null }
+  const fixed = [], gone = [], notRechecked = []
   for (const f of prev) {
-    const id = f && f.id
-    if (!id || curIds.has(id)) continue
-    const rule = (f && f.rule) || (typeof id === 'string' && id.includes('@') ? id.split('@')[0] : '')
-    if (!rule || !coveredSet.has(rule)) {
-      notRechecked.push(id)
-    } else {
-      fixed.push(id)
-    }
+    if (curIds.has(f.id)) continue
+    const v = classifyAbsent(f, ctx)
+    ;(v === 'fixed' ? fixed : v === 'gone' ? gone : notRechecked).push(f.id)
   }
-
   const added = [...curIds].filter(id => !seen.has(id))
   const remaining = [...curIds].filter(id => prevIds.has(id)).length
-  const out = { fixed, new: added, remaining }
-  out.not_rechecked = notRechecked
-  out.unresolved = notRechecked
-  return out
+  const score = ev && typeof ev.score === 'number' && Number.isFinite(ev.score) ? Math.trunc(ev.score) : null
+  const ps = typeof prevScore === 'number' ? prevScore : null
+  return { prev_score: ps, fixed, gone, new: added, remaining, not_rechecked: notRechecked, unresolved: notRechecked,
+    receipt: formatReceipt(ps, score, fixed, gone, remaining, notRechecked) }
 }
 
 export function normalizeDelta(d) {
@@ -312,16 +380,6 @@ export function formatDesignPrompt(target, pageUrl, userNote) {
   let out = lines.join('\n')
   if (out.length > 700) out = out.slice(0, 697) + '...'
   return out
-}
-
-export function formatFixReceipt(score, prevScore, fixed, remaining, pageUrl) {
-  const url = cleanText(pageUrl, 100) || 'page'
-  const diff = typeof prevScore === 'number' && typeof score === 'number' ? score - prevScore : null
-  const sign = diff !== null ? (diff > 0 ? '+' + diff : diff < 0 ? '−' + Math.abs(diff) : '±0') : ''
-  const scorePart = typeof prevScore === 'number' ? prevScore + ' → ' + score + ' (' + sign + ')' : 'score ' + score
-  const fx = Array.isArray(fixed) ? fixed : []
-  const rules = [...new Set(fx.map(f => cleanText((f && f.rule) || String(f || '').split('@')[0], 30)).filter(Boolean))]
-  return 'Pinpoint Fix Receipt (' + url + '): ' + scorePart + ' · ' + fx.length + ' fixed' + (rules.length ? ' [' + rules.slice(0, 4).join(', ') + ']' : '') + ' · ' + (typeof remaining === 'number' ? remaining : 0) + ' remaining'
 }
 
 // Failure copy shown in the pane for each code

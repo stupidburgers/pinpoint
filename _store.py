@@ -125,7 +125,7 @@ def _extract_coverage(result):
         return set()
     if any(not isinstance(x, str) or not x.strip() for x in limits):
         return set()
-    if limits or result.get("truncated"):
+    if limits or result.get("truncated") not in (None, False):
         return set()
     errored = {e["rule"] for e in errors}
     if "engine" in errored:
