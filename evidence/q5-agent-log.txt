@@ -1,5 +1,0 @@
-2026-11-04 21:06:14,221 INFO hermes_cli.plugin_capabilities: capability_check plugin=pinpoint-q5 capability=tools.override decision=deny checked_by=plugin_capability_granted evidence=not granted
-2026-11-04 21:06:16,333 INFO gateway.run: Session storage: C:\Users\<user>\AppData\Local\pinpoint-q5-rig\home\sessions
-2026-11-04 21:06:18,029 INFO gateway.run: kanban dispatcher: holding singleton dispatcher lock (C:\Users\<user>\AppData\Local\pinpoint-q5-rig\home\kanban\.dispatcher.lock)
-2026-11-04 21:06:20,021 INFO hermes_cli.web_server: Mounted plugin API routes: /api/plugins/pinpoint-q5/
-2026-11-04 21:06:20,035 INFO hermes_cli.web_server: Mounted plugin API routes: /api/plugins/hermes-achievements/

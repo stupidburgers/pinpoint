@@ -622,6 +622,9 @@ async function catchUpPending() {
 // ----------------------------------------------------------------------------
 // Pin actions
 // ----------------------------------------------------------------------------
+// Calls host.composer.submit (sends a chat turn as the user). Reach here ONLY from a genuine
+// Desktop-owned UI gesture (pane buttons, command palette). Page-originated drain events are
+// UNTRUSTED and must never route here -- see the guard in tick().
 async function sendToAgent(text, okMsg) {
   let ok = false
   try { ok = !!(await host.composer.submit(null, text)) } catch (e) { ok = false }
@@ -757,11 +760,14 @@ async function tick() {
   let events = []
   try { events = (await callApi('drain', [])).v || [] } catch (e) { events = [] }
   for (const ev of events) {
-    if (ev.type === 'pin-click') setUi({ selected: ev.id })
-    else if (ev.type === 'fix') void fixFinding(ev.id)
-    else if (ev.type === 'dismiss') void dismissFinding(ev.id, 'Dismissed from the pin card')
+    // SECURITY: drained events originate in the page, whose scripts share window.__pinpoint
+    // and can forge any of them. Page events may only SELECT/HIGHLIGHT in Desktop-owned UI.
+    // They must never send a chat turn (host.composer.submit/insertText), change stored
+    // status, or supply instruction text. Those actions are reachable only from the Pinpoint
+    // pane buttons / command palette (genuine user gestures).
+    if (ev.type === 'pin-click' || ev.type === 'fix' || ev.type === 'dismiss') setUi({ selected: ev.id })
     else if (ev.type === 'inspect-select' && ev.target) setUi({ inspected: ev.target })
-    else if (ev.type === 'design' && ev.target) { setUi({ inspected: ev.target, designNote: ev.note || '' }); host.notify({ kind: 'info', title: 'Pinpoint', message: 'Element selected. Review the instruction in the Pinpoint pane, then press Send to Hermes.' }) }
+    else if (ev.type === 'design' && ev.target) { setUi({ inspected: ev.target }); host.notify({ kind: 'info', title: 'Pinpoint', message: 'Element selected. Write the instruction in the Pinpoint pane, then press Send to Hermes.' }) }
   }
 
   const auto = prefs().autoReaudit
