@@ -99,14 +99,23 @@ def _empty_delta_result(url, key):
     return {"audit_id": None, "delta": None, "url_key": key, "findings": [], "suppressed": 0}
 
 
-def _extract_coverage(result):
-    """Rules whose complete returned findings can establish absence.
+def options_sig(opts):
+    """'AA|44' for a valid audit_options dict (contrast level + tap advisory), else None. Mirrors bridge.js optionsSig."""
+    if not isinstance(opts, dict):
+        return None
+    c, t = opts.get("contrast"), opts.get("tapAdvisory")
+    if c not in ("AA", "AAA") or isinstance(t, bool) or not isinstance(t, (int, float)) or t < 0 or t != t:
+        return None
+    return f"{c}|{int(t) if float(t).is_integer() else t}"
 
-    Requested rules/findings are not execution evidence. Legacy snapshots without
-    checked metadata remain readable, but cannot close an existing open pin.
+
+def _extract_coverage(result):
+    """Rules whose absence of findings may count: only the engine's actual `rules_covered`.
+
+    Requested rules, returned findings and the legacy `stats.checked` map (incremented before an element is
+    skipped) are not execution evidence. Any engine error, truncation, non-empty limit or malformed
+    errors/limits metadata empties the set. Mirrors bridge.js auditCoverage.
     """
-    # Only absent optional metadata defaults to empty. Explicit null/false/{},
-    # or unusable entries, must not be normalized into evidence of success.
     errors = result.get("errors", [])
     limits = result.get("limits", [])
     if not isinstance(errors, list) or not isinstance(limits, list):
@@ -116,22 +125,28 @@ def _extract_coverage(result):
         return set()
     if any(not isinstance(x, str) or not x.strip() for x in limits):
         return set()
-    if result.get("truncated") or any("truncat" in x.lower() for x in limits):
+    if limits or result.get("truncated"):
         return set()
     errored = {e["rule"] for e in errors}
     if "engine" in errored:
         return set()
-    if "rules_covered" in result:
-        rc = result["rules_covered"]
-        if not isinstance(rc, list) or any(not isinstance(r, str) or not r for r in rc):
-            return set()
-        return set(rc) - errored
+    rc = result.get("rules_covered")
+    if not isinstance(rc, list) or any(not isinstance(r, str) or not r for r in rc):
+        return set()
+    return set(rc) - errored
+
+
+def _skipped_rules(result):
+    """Rules that skipped elements (stats.skipped), or None when the field is missing/malformed."""
     stats = result.get("stats")
-    checked = stats.get("checked") if isinstance(stats, dict) else None
-    if isinstance(checked, dict):
-        return {r for r, n in checked.items() if isinstance(r, str) and r
-                and isinstance(n, (int, float)) and not isinstance(n, bool) and n >= 0 and r not in errored}
-    return set()
+    sk = stats.get("skipped") if isinstance(stats, dict) else None
+    if not isinstance(sk, dict):
+        return None
+    out = set()
+    for rule, v in sk.items():
+        if not isinstance(v, dict) or v:
+            out.add(rule)
+    return out
 
 
 def _pin_rule(pin_id, finding_raw):
@@ -150,17 +165,15 @@ def _pin_rule(pin_id, finding_raw):
 
 
 def _present_counts(result):
-    """(counts, state): state is 'legacy' (no presence data), 'incomplete' or 'complete'."""
-    if "presentAnchors" not in result:
-        return None, "legacy"
+    """(counts, ok): ok only for a well-formed, complete inventory. Missing or incomplete never closes a pin."""
     pa = result.get("presentAnchors")
     if (not isinstance(pa, list) or any(not isinstance(x, str) for x in pa)
             or result.get("presentComplete") is not True):
-        return None, "incomplete"
+        return None, False
     counts = {}
     for x in pa:
         counts[x] = counts.get(x, 0) + 1
-    return counts, "complete"
+    return counts, True
 
 
 def _pin_sig(finding_raw):
@@ -172,16 +185,50 @@ def _pin_sig(finding_raw):
     return sig if isinstance(sig, str) and sig else None
 
 
+def _pin_options(finding_raw):
+    try:
+        f = json.loads(finding_raw) if isinstance(finding_raw, str) else finding_raw
+        sig = f.get("audit_sig") if isinstance(f, dict) else None
+    except (TypeError, ValueError, AttributeError):
+        sig = None
+    return sig if isinstance(sig, str) and sig else None
+
+
+def classify_absent(pin_id, finding_raw, ctx):
+    """Verdict for an earlier open pin the new audit did not report: 'fixed' | 'gone' | 'not_rechecked'.
+
+    docs/delta-semantics.md, rows 3-10 (first match wins). ctx = {coverage, skipped, present, present_ok, options}.
+    """
+    rule = _pin_rule(pin_id, finding_raw)
+    if not rule or rule not in ctx["coverage"]:
+        return "not_rechecked"
+    prior = _pin_options(finding_raw)
+    if prior is None or ctx["options"] is None or prior != ctx["options"]:
+        return "not_rechecked"
+    if not ctx["present_ok"]:
+        return "not_rechecked"
+    sig = _pin_sig(finding_raw)
+    if not sig or ctx["present"].get(sig, 0) > 1:
+        return "not_rechecked"
+    if ctx["present"].get(sig, 0) == 0:
+        return "gone"
+    if ctx["skipped"] is None or rule in ctx["skipped"]:
+        return "not_rechecked"
+    return "fixed"
+
+
 def format_receipt(prev_score, score, fixed, gone, remaining, not_rechecked):
-    """Compact pasteable Markdown proof of a re-audit."""
+    """Compact pasteable Markdown receipt of a re-audit. Mirrors bridge.js formatReceipt (shared test cases)."""
     def sc(v):
         return "?" if v is None else str(v)
-    lines = [f"**Pinpoint fix receipt** - score {sc(prev_score)} -> {sc(score)}",
-             f"- fixed (same element re-measured, now passing): {len(fixed)}"]
+    lines = [f"**Pinpoint receipt** - score {sc(prev_score)} -> {sc(score)}",
+             f"- fixed (no longer reported, same element signature still present; NOT re-measured): {len(fixed)}"]
     lines += [f"  - `{i}`" for i in fixed[:10]]
-    lines.append(f"- gone (element no longer on the page, NOT proof of a fix): {len(gone)}")
+    lines.append(f"- gone (element signature no longer on the page; NOT proof of a fix): {len(gone)}")
     lines += [f"  - `{i}`" for i in gone[:10]]
-    lines.append(f"- still open: {remaining}; not re-checked: {len(not_rechecked)}")
+    lines.append(f"- not rechecked (kept open): {len(not_rechecked)}")
+    lines += [f"  - `{i}`" for i in not_rechecked[:10]]
+    lines.append(f"- still failing: {remaining}")
     return "\n".join(lines)
 
 
@@ -200,6 +247,11 @@ def record_audit(result, source="user"):
                 or not f["id"].strip() for f in raw):
             return _empty_delta_result(url, key)
         findings = [clean_finding(f) for f in raw]
+        opt_sig = options_sig(result.get("audit_options"))
+        for f in findings:           # never trust a page-supplied stamp
+            f.pop("audit_sig", None)
+            if opt_sig:
+                f["audit_sig"] = opt_sig
         if not key:
             return {**_empty_delta_result(url, key), "findings": findings}
         score = result.get("score")
@@ -215,29 +267,13 @@ def record_audit(result, source="user"):
             suppressed = len(findings) - len(visible)
             cur = {f["id"] for f in visible}
             prev_open = {i for i, p in pins.items() if p[0] in ("open", "new")}
-            coverage = _extract_coverage(result)
-            fixed = []
-            gone = []
-            not_rechecked = []
-            present, presence = _present_counts(result)
+            present, present_ok = _present_counts(result)
+            ctx = {"coverage": _extract_coverage(result), "skipped": _skipped_rules(result),
+                   "present": present, "present_ok": present_ok, "options": opt_sig}
+            fixed, gone, not_rechecked = [], [], []
             for i in pins:
                 if i in prev_open and i not in cur:
-                    p_rule = _pin_rule(i, pins[i][1])
-                    if not p_rule or p_rule not in coverage:
-                        not_rechecked.append(i)
-                    elif presence == "legacy":
-                        fixed.append(i)
-                    elif presence == "incomplete":
-                        not_rechecked.append(i)      # cannot tell removed from repaired
-                    else:
-                        sig = _pin_sig(pins[i][1])
-                        n = present.get(sig, 0) if sig else None
-                        if n is None or n > 1:
-                            not_rechecked.append(i)  # no/ambiguous element signature
-                        elif n == 0:
-                            gone.append(i)
-                        else:
-                            fixed.append(i)
+                    {"fixed": fixed, "gone": gone, "not_rechecked": not_rechecked}[classify_absent(i, pins[i][1], ctx)].append(i)
             new = [f["id"] for f in visible if f["id"] not in pins]
             remaining = len(cur & prev_open)
             cid = c.execute("insert into audits(url_key,url,t,score,counts,source) values(?,?,?,?,?,?)",

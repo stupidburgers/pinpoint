@@ -34,9 +34,12 @@ def test_truncated_batch_retains_old_unmeasured_pin_at_storage_cap(store):
 
 @pytest.mark.parametrize("metadata", [
     {"rules_covered": [RULE]}, {"stats": {"checked": {RULE: 0}}},
+    {"rules_covered": [RULE], "stats": {"checked": {RULE: 3}, "skipped": {}}, "presentAnchors": ["x|y|z"], "presentComplete": True},
 ])
-def test_measured_absence_can_close_legacy_pin(store, metadata):
+def test_legacy_pin_without_options_or_signature_is_never_closed(store, metadata):
+    """Coverage alone (the old 'presence exception') no longer turns absence into fixed or gone."""
     store.record_audit({"url": URL, "findings": [F]})
     out = store.record_audit({"url": URL, "findings": [], **metadata})
-    assert out["delta"]["fixed"] == [F["id"]]
-    assert store.list_pins(URL)[0]["status"] == "fixed"
+    assert out["delta"]["fixed"] == [] and out["delta"]["gone"] == []
+    assert out["delta"]["not_rechecked"] == [F["id"]]
+    assert store.list_pins(URL)[0]["status"] == "open"
