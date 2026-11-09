@@ -492,6 +492,10 @@ async function catchUpPending() {
 // ----------------------------------------------------------------------------
 // Pin actions
 // ----------------------------------------------------------------------------
+// Calls host.composer.submit (sends a chat turn as the user). Reach here ONLY from a
+// genuine Desktop-owned UI gesture (pane "Fix with Hermes" / "Fix all high" buttons,
+// command palette). Page-originated drain events are UNTRUSTED and must never route
+// here -- see the fix-event guard in tick().
 async function sendToAgent(text, okMsg) {
   let ok = false
   try { ok = !!(await host.composer.submit(null, text)) } catch (e) { ok = false }
@@ -575,8 +579,13 @@ async function tick() {
   let events = []
   try { events = (await callApi('drain', [])).v || [] } catch (e) { events = [] }
   for (const ev of events) {
-    if (ev.type === 'pin-click') setUi({ selected: ev.id })
-    else if (ev.type === 'fix') void fixFinding(ev.id)
+    // SECURITY: drained events originate in the page, whose scripts share window.__pinpoint
+    // and can therefore forge any of them. A forged `fix` must never auto-submit a chat turn
+    // as the user (host.composer.submit) -- the previous `fixFinding(ev.id)` call did exactly
+    // that. A pin-card "Fix with Hermes" is now downgraded to a pin selection; the request is
+    // completed only when the user clicks the Fix button in the Pinpoint pane (Desktop-owned
+    // UI, a genuine user gesture), the sole remaining caller of host.composer.submit.
+    if (ev.type === 'pin-click' || ev.type === 'fix') setUi({ selected: ev.id })
     else if (ev.type === 'dismiss') void dismissFinding(ev.id, 'Dismissed from the pin card')
   }
 
