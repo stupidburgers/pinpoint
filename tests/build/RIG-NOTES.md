@@ -1,6 +1,6 @@
 # Desktop half: rig facts measured by Package C (Hermes Desktop 2026.7363.3271.0, agent 0.22.7, Windows 11)
 
-Rig: `RIG=C:/Users/<user>/AppData/Local/pinpoint-rig-c`, CDP port 9445, fake LLM on 8798, static site on 8791.
+Rig: `RIG=$ISOLATED_TEST_ROOT/pinpoint-rig-c`, CDP port 9445, fake LLM on 8798, static site on 8791.
 Helpers: `tests/build/rig_cdp.py` (`eval`, `shot`, `prepare`, `send`, `palette`, `browse`, `click_text`). Screenshots: `tests/build/evidence-c/`.
 
 | Fact | Evidence |
@@ -21,4 +21,4 @@ Helpers: `tests/build/rig_cdp.py` (`eval`, `shot`, `prepare`, `send`, `palette`,
 | Rig gotcha: `taskkill //PID` does not work from this git-bash (MSYS conversion disabled): use `taskkill /PID` or PowerShell `Stop-Process`. Python tools need a gateway restart; the desktop JS only needs a renderer reload. | |
 
 Run the unit tests: `node --test tests/build/bridge.test.mjs`; the build tests: `python -m pytest tests/build -q`.
-Build for the rig with the stand-in engine: `node scripts/build-desktop.mjs --engine tests/build/stub-engine.js --out $RIG/home/desktop-plugins/pinpoint/plugin.js`.
+Build for the rig with the stand-in engine: `node scripts/build-desktop.mjs --engine tests/build/stub-engine.js --out $RIG/hermes_home/desktop-plugins/pinpoint/plugin.js`.

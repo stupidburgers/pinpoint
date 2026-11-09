@@ -9,7 +9,7 @@
   {"url": "https://e.com/p?b=2&a=1&a=0", "key": "https://e.com/p?a=0&a=1&b=2"},
   {"url": "https://e.com/p?UTM_Source=x&z=1", "key": "https://e.com/p?z=1"},
   {"url": "http://l:3000/#/dash/", "key": "http://l:3000#/dash"},
-  {"url": "http://l:3000/app?b=1&a=2#/users/7", "key": "http://l:3000/app?a=2&b=1#/users/7"},
+  {"url": "http://l:3000/app?b=1&a=2#/accounts/7", "key": "http://l:3000/app?a=2&b=1#/accounts/7"},
   {"url": "http://e.com/p#section", "key": "http://e.com/p"},
   {"url": "http://e.com/Path/A", "key": "http://e.com/Path/A"},
   {"url": "https://e.com/p?a=", "key": "https://e.com/p?a="},

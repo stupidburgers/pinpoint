@@ -1,4 +1,5 @@
 """Build tests for the desktop half (C1). Run: env -u PYTHONPATH python -m pytest tests/build -q"""
+import os
 import re
 import shutil
 import subprocess
@@ -7,11 +8,11 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-NODE = shutil.which("node") or "C:/Program Files/nodejs/node.exe"
+NODE = os.environ.get("NODE") or shutil.which("node")
 STUB = ROOT / "tests" / "build" / "stub-engine.js"
 BUILD = ROOT / "scripts" / "build-desktop.mjs"
 
-pytestmark = pytest.mark.skipif(not Path(NODE).exists() and not shutil.which("node"), reason="node not installed")
+pytestmark = pytest.mark.skipif(not NODE or (not Path(NODE).exists() and not shutil.which(NODE)), reason="node not installed")
 
 FORBIDDEN = ["eval(", "new Function", "<script", "import(", "data-testid", "data-slot", "<<", "querySelector('webview')", 'querySelector("webview")']
 
