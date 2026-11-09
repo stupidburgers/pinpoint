@@ -7,8 +7,22 @@ export const REQUEST_CODES = ['no_preview', 'consent_denied', 'origin_blocked', 
 // Control chars (C0, DEL, C1) and bidi overrides/isolates: page text is untrusted data.
 const BAD_CHARS = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g
 
+// Prompt-breakout delimiters in page-originated strings (mirrors _sanitize.py _PROMPT_DELIMS).
+const PROMPT_DELIMS = /<\s*\/?\s*(?:system|assistant|user|hermes|control|prompt)[^>]*>|\[\s*\/?\s*(?:USER_MESSAGE|SYSTEM|ASSISTANT|OUT-OF-BAND)[^\]]*\]|<!--[\s\S]*?-->/gi
+
+function stripDelims(text) {
+  // Re-apply until stable so nested forms like "<<system>system>" cannot reassemble a delimiter.
+  let cur = text
+  for (let i = 0; i < 8; i++) {
+    const next = cur.replace(PROMPT_DELIMS, ' ')
+    if (next === cur) break
+    cur = next
+  }
+  return cur
+}
+
 export function cleanText(value, cap) {
-  const s = String(value == null ? '' : value).replace(BAD_CHARS, '').replace(/\s+/g, ' ').trim()
+  const s = stripDelims(String(value == null ? '' : value)).replace(BAD_CHARS, '').replace(/\s+/g, ' ').trim()
   if (!cap || s.length <= cap) return s
   return s.slice(0, Math.max(0, cap - 1)).trimEnd() + '\u2026'
 }
