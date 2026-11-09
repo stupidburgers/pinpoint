@@ -1888,6 +1888,136 @@
    }
   },
   {
+   "name": "truncated_odd_value",
+   "row": "truncation",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": [],
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [],
+    "gone": [],
+    "not_rechecked": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "open"
+    }
+   }
+  },
+  {
+   "name": "truncated_false_is_fine",
+   "row": "sig count 1, measured",
+   "setup": {
+    "score": 80,
+    "findings": [
+     {
+      "id": "a11y.control-name@aaaaaaaa",
+      "rule": "a11y.control-name",
+      "sev": "high",
+      "selector": "#buy",
+      "label": "button",
+      "note": "n",
+      "fix": "f",
+      "measured": {},
+      "anchor": {
+       "tag": "button",
+       "sig": "button|#buy|body"
+      }
+     }
+    ],
+    "dismissed": [],
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "result": {
+    "url": "https://delta.invalid/page",
+    "score": 100,
+    "findings": [],
+    "rules_covered": [
+     "a11y.control-name"
+    ],
+    "errors": [],
+    "limits": [],
+    "truncated": false,
+    "stats": {
+     "checked": {
+      "a11y.control-name": 5
+     },
+     "skipped": {}
+    },
+    "presentAnchors": [
+     "button|#buy|body"
+    ],
+    "presentComplete": true,
+    "audit_options": {
+     "contrast": "AA",
+     "tapAdvisory": 44
+    }
+   },
+   "expect": {
+    "fixed": [
+     "a11y.control-name@aaaaaaaa"
+    ],
+    "gone": [],
+    "not_rechecked": [],
+    "new": [],
+    "remaining": 0,
+    "statuses": {
+     "a11y.control-name@aaaaaaaa": "fixed"
+    }
+   }
+  },
+  {
    "name": "truncated_limit_text",
    "row": "truncation",
    "setup": {

@@ -340,3 +340,20 @@ def test_inspect_selector_no_match_is_explicit(tools, desk):
 def test_inspect_selector_validation(tools, desk, bad):
     out = json.loads(tools.audit_handler({"inspect_selector": bad}))
     assert out["ok"] is False and out["code"] == "bad_args"
+
+
+def test_tool_descriptions_name_every_outcome(tools):
+    a, p = tools.AUDIT_SCHEMA["description"], tools.PINS_SCHEMA["description"]
+    for word in ("fixed", "gone", "not_rechecked"):
+        assert word in a, word
+    assert "not proof" in a.lower() or "never proof" in a.lower()
+    assert "gone" in p and "fixed" in p
+
+
+def test_pins_list_shows_gone_status(tools, desk):
+    call(tools, {})
+    desk.reply = {"ok": True, "result": {**AR([F(1)], 80), "presentAnchors": ["div|#else|body"]}}
+    r = call(tools, {})
+    assert r["delta"]["gone"] == [F(2)["id"], F(3)["id"]] and r["delta"]["fixed"] == []
+    st = {p["id"]: p["status"] for p in pins(tools, {"action": "list"})["pins"]}
+    assert st[F(2)["id"]] == "gone" and st[F(1)["id"]] == "open"

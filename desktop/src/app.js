@@ -27,9 +27,10 @@ const initialUi = () => ({
   url: '',
   key: '',
   prevScore: null,
-  delta: null,              // { prev_score, fixed[], new[], remaining }
+  delta: null,              // { prev_score, fixed[], gone[], new[], remaining, not_rechecked[], unresolved[], receipt }
   unresolved: [],           // older open findings not measured in the latest result
   fixed: [],                // findings fixed in the last re-audit (shown green)
+  gone: [],                 // findings whose element signature left the page in the last re-audit (not a fix)
   dismissed: [],            // findings the user/agent marked intentional
   lost: [],                 // ids the engine could not locate
   selected: '',
@@ -160,7 +161,7 @@ function applyPins(findings, fixed, delta) {
 // Denied for this origin: stop touching the page and drop results that belong to a different site.
 function denied(m) {
   M.active = false; C.storage.set('active', false)
-  setUi({ phase: 'error', error: m, result: null, fixed: [], lost: [], pinsShown: false, delta: null, prevScore: null })
+  setUi({ phase: 'error', error: m, result: null, fixed: [], gone: [], unresolved: [], lost: [], pinsShown: false, delta: null, prevScore: null })
 }
 
 // One audit at a time: user, auto and agent audits queue behind each other.
@@ -201,6 +202,10 @@ async function doAudit({ source, args, deliver }) {
     const opts = buildAuditOpts(a, prefs(), prev.dismissed.map(f => f.id))
     const res = (await callApi('audit', [opts])).v
     if (!res || !usableFindings(res.findings)) throw new Error('engine returned no usable findings report')
+    // Host-owned stamp of the options this audit ran with (a page-supplied value is overwritten). A later audit
+    // with different options can never close a pin from this one.
+    res.audit_options = { contrast: opts.contrast, tapAdvisory: opts.tapAdvisory }
+    res.findings = stampAuditOptions(res.findings, res.audit_options)
     if (deliver) await deliver(res)
 
     // diff: python store answers for user/auto audits; local mirror otherwise (agent audits are stored by the tool)
@@ -209,9 +214,9 @@ async function doAudit({ source, args, deliver }) {
       const posted = await storePost('/audit', { result: res, source })
       delta = normalizeDelta(posted && posted.delta)
     }
-    const covered = auditCoverage(res)
-    if (!delta) delta = localDelta(prev.findings, res.findings, prev.seen, covered)
+    if (!delta) delta = localDelta(prev.findings, res.findings, prev.seen, res, prev.score)
     const fixedF = delta && prev.findings ? prev.findings.filter(f => delta.fixed.includes(f.id)) : []
+    const goneF = delta && prev.findings ? prev.findings.filter(f => (delta.gone || []).includes(f.id) && !res.findings.some(g => g.id === f.id)) : []
     const unresolved = delta && prev.findings ? prev.findings.filter(f =>
       (delta.not_rechecked || []).includes(f.id) && !res.findings.some(g => g.id === f.id)) : []
     const openFindings = [...res.findings, ...unresolved]
@@ -235,7 +240,7 @@ async function doAudit({ source, args, deliver }) {
     C.storage.set('lastKey', key); C.storage.set('active', true)
     M.active = true; M.lastMissingHref = ''; M.resume = null; M.skip = 0
     if (M.fadeUndo) { M.fadeUndo(); M.fadeUndo = null }
-    setUi({ phase: 'result', result: res, url: res.url || probe.url, key, prevScore, delta, unresolved, fixed: fixedF, dismissed: prev.dismissed, lost, selected: '', inspected: res.inspected || probe.selected || $ui.get().inspected, inspecting: !!probe.inspecting, receiptCopied: false, pinsShown: pin })
+    setUi({ phase: 'result', result: res, url: res.url || probe.url, key, prevScore, delta, unresolved, fixed: fixedF, gone: goneF, dismissed: prev.dismissed, lost, selected: '', inspected: res.inspected || probe.selected || $ui.get().inspected, inspecting: !!probe.inspecting, receiptCopied: false, pinsShown: pin })
     ensurePoll()
     if (fixedF.length && pin) {
       M.fadeUndo = C.setTimeout(() => {
@@ -573,7 +578,7 @@ const CSS = `
 .pp-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:start;padding:6px 6px 6px 8px;border-radius:9px;border:1px solid transparent;transition:background .12s,border-color .12s}
 .pp-row:hover,.pp-row:focus-within{background:var(--ui-row-hover-background,var(--ui-bg-tertiary))}
 .pp-row.sel{background:var(--ui-row-active-background,var(--ui-bg-secondary));border-color:color-mix(in srgb,var(--c) 55%,transparent)}
-.pp-row.gone .pp-main{opacity:.7}
+.pp-row.dim .pp-main{opacity:.7}
 .pp-badge{margin-top:1px;min-width:22px;height:22px;border-radius:99px;display:grid;place-items:center;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;background:var(--c);color:var(--ui-bg-editor,var(--dt-primary-foreground))}
 .pp-badge svg{width:12px;height:12px;stroke-width:3}
 .pp-main{all:unset;box-sizing:border-box;display:block;min-width:0;cursor:pointer;border-radius:6px}
@@ -635,15 +640,19 @@ function Ring({ score }) {
     h('div', { className: 'num', 'aria-hidden': 'true' }, String(score)))
 }
 
-function Row({ f, kind, selected, lost }) {
+// kind is the verdict (open | fixed | gone | dismissed); notRechecked marks an open pin the last audit could not verify;
+// lost is only the overlay-relocation caveat and never changes the verdict.
+function Row({ f, kind, selected, lost, notRechecked }) {
   const sevClass = kind === 'fixed' ? 'pp-sev-fixed' : kind === 'dismissed' ? 'pp-sev-dismissed' : 'pp-sev-' + f.sev
-  return h('div', { className: 'pp-row ' + sevClass + (selected ? ' sel' : '') + (kind !== 'open' || lost ? ' gone' : ''), 'data-pp-id': f.id },
+  return h('div', { className: 'pp-row ' + sevClass + (selected ? ' sel' : '') + (kind !== 'open' ? ' dim' : ''), 'data-pp-id': f.id },
     h('span', { className: 'pp-badge', 'aria-hidden': 'true' }, kind === 'fixed' ? ICON.check() : f.pin != null ? String(f.pin) : '\u2022'),
     h('button', { type: 'button', className: 'pp-main', onClick: () => void locate(f.id), 'aria-label': ruleName(f.rule) + ': ' + cleanText(f.note, 120) + '. Show on page', title: 'Scroll to this element' },
       h('div', { className: 'pp-rule' }, ruleName(f.rule),
-        kind === 'fixed' ? h('span', { className: 'pp-tag' }, 'fixed') : null,
+        kind === 'fixed' ? h('span', { className: 'pp-tag', title: 'No longer reported and the same element is still on the page; not re-measured' }, 'fixed') : null,
+        kind === 'gone' ? h('span', { className: 'pp-tag', title: 'Element no longer found; not proof of a fix' }, 'gone') : null,
         kind === 'dismissed' ? h('span', { className: 'pp-tag' }, 'dismissed') : null,
-        lost ? h('span', { className: 'pp-tag' }, 'can\u2019t locate') : null,
+        notRechecked ? h('span', { className: 'pp-tag', title: 'The last audit could not verify this pin; it stays open' }, 'not rechecked') : null,
+        lost ? h('span', { className: 'pp-tag', title: 'The overlay could not relocate the element; the status above is unchanged' }, 'can\u2019t locate') : null,
         f.heuristic ? h('span', { className: 'pp-tag', title: 'Heuristic check' }, 'heuristic') : null),
       h('div', { className: 'pp-note' }, cleanText(f.note, 160)),
       h('span', { className: 'pp-sel', title: cleanText(f.selector, 200) }, cleanText(f.selector, 90))),
@@ -713,18 +722,20 @@ function resultView(s) {
   const counts = { high: 0, medium: 0, low: 0 }
   open.forEach(f => { if (counts[f.sev] != null) counts[f.sev]++ })
   const diff = typeof s.prevScore === 'number' ? r.score - s.prevScore : null
-  const hasDeltaBanner = (diff !== null && diff !== 0) || s.fixed.length > 0
+  const nrIds = new Set((s.unresolved || []).map(f => f.id))
+  const verdictParts = [s.fixed.length ? s.fixed.length + ' fixed' : '', (s.gone || []).length ? s.gone.length + ' gone' : '', nrIds.size ? nrIds.size + ' not rechecked' : ''].filter(Boolean)
+  const hasDeltaBanner = (diff !== null && diff !== 0) || verdictParts.length > 0
   out.push(h('div', { key: 'sum', className: 'pp-summary' },
     h(Ring, { score: r.score }),
     h('div', { className: 'pp-sum-side' },
       h('div', { className: 'pp-counts' }, ['high', 'medium', 'low'].map(k => h('span', { key: k, className: 'pp-pill pp-sev-' + k }, h('span', { className: 'pp-dot', 'aria-hidden': 'true' }), counts[k] + ' ' + SEV_LABEL[k]))),
       hasDeltaBanner ? h('div', { className: 'pp-delta', 'aria-live': 'polite' },
         diff !== null && diff !== 0 ? h('b', { className: diff > 0 ? 'up' : 'down' }, (diff > 0 ? '+' : '−') + Math.abs(diff)) : null,
-        typeof s.prevScore === 'number' ? 'from ' + s.prevScore + (s.fixed.length ? ' · ' + s.fixed.length + ' fixed' : '') : (s.fixed.length + ' fixed'),
+        [typeof s.prevScore === 'number' ? 'from ' + s.prevScore : '', ...verdictParts].filter(Boolean).join(' \u00b7 '),
         h('button', {
           type: 'button', className: 'pp-btn sm',
           'aria-label': 'Copy Fix Receipt',
-          onClick: () => copyText(s.delta && s.delta.receipt ? s.delta.receipt : formatFixReceipt(r.score, s.prevScore, s.fixed, open.length, s.url), 'receiptCopied')
+          onClick: () => copyText(s.delta && s.delta.receipt ? s.delta.receipt : formatReceipt(s.prevScore, r.score, s.fixed.map(f => f.id), (s.gone || []).map(f => f.id), s.delta ? s.delta.remaining : 0, [...nrIds]), 'receiptCopied')
         }, s.receiptCopied ? 'Copied' : 'Copy Fix Receipt')) : null,
       h('div', { className: 'pp-actions' },
         h('button', { type: 'button', className: 'pp-btn', disabled: counts.high === 0, onClick: () => void fixAllHigh(), title: 'Send up to 8 high-severity findings to Hermes' }, ICON.send(), 'Fix all high')))))
@@ -734,10 +745,13 @@ function resultView(s) {
     if (!groups[sev].length) continue
     out.push(h('section', { key: 'g' + sev, className: 'pp-sec pp-sev-' + sev, 'aria-label': SEV_LABEL[sev] + ' severity' },
       h('h4', null, h('span', { className: 'pp-dot', 'aria-hidden': 'true' }), SEV_LABEL[sev] + ' \u00b7 ' + groups[sev].length),
-      groups[sev].map(f => h(Row, { key: f.id, f, kind: 'open', selected: s.selected === f.id, lost: s.lost.includes(f.id) }))))
+      groups[sev].map(f => h(Row, { key: f.id, f, kind: 'open', selected: s.selected === f.id, lost: s.lost.includes(f.id), notRechecked: nrIds.has(f.id) }))))
   }
   if (!open.length) out.push(h('div', { key: 'clean', className: 'pp-empty' }, h('div', { className: 'glyph' }, ICON.check()), h('strong', null, 'Nothing to pin'), h('span', null, 'No findings from the checks that ran.')))
-  if (s.fixed.length) out.push(h('section', { key: 'fx', className: 'pp-sec', 'aria-label': 'Fixed' }, h('h4', null, h('span', { className: 'pp-dot pp-sev-fixed', 'aria-hidden': 'true' }), 'Fixed \u00b7 ' + s.fixed.length), s.fixed.map(f => h(Row, { key: f.id, f, kind: 'fixed', selected: false, lost: false }))))
+  if (s.fixed.length) out.push(h('section', { key: 'fx', className: 'pp-sec', 'aria-label': 'Fixed' }, h('h4', null, h('span', { className: 'pp-dot pp-sev-fixed', 'aria-hidden': 'true' }), 'Fixed \u00b7 ' + s.fixed.length), s.fixed.map(f => h(Row, { key: f.id, f, kind: 'fixed', selected: false, lost: s.lost.includes(f.id) }))))
+  if ((s.gone || []).length) out.push(h('section', { key: 'gn', className: 'pp-sec', 'aria-label': 'Gone' }, h('h4', null, 'Gone \u00b7 ' + s.gone.length),
+    h('div', { className: 'pp-note' }, 'These elements are no longer found on the page (removed, renamed or moved). That is not proof of a fix.'),
+    s.gone.map(f => h(Row, { key: f.id, f, kind: 'gone', selected: false, lost: false }))))
   if (s.dismissed.length) out.push(h('section', { key: 'ds', className: 'pp-sec', 'aria-label': 'Dismissed' }, h('h4', null, 'Dismissed \u00b7 ' + s.dismissed.length), s.dismissed.map(f => h(Row, { key: f.id, f, kind: 'dismissed', selected: false, lost: false }))))
   return out
 }

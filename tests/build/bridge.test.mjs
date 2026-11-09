@@ -113,53 +113,51 @@ test('urlKey matches tests/shared/url_key_cases.json when package A has produced
   }
 })
 
-test('localDelta: fixed / new / remaining; null without a previous audit', () => {
-  const f = id => ({ id, rule: 'test.rule' })
-  assert.equal(B.localDelta(null, [f('a')]), null)
-  const d = B.localDelta([f('a'), f('b'), f('c')], [f('b'), f('c'), f('d')], ['z'], ['test.rule'])
-  assert.deepEqual(d, { fixed: ['a'], new: ['d'], remaining: 2, not_rechecked: [], unresolved: [] })
-  assert.deepEqual(B.localDelta([f('a')], [f('z')], ['z']).new, [])   // seen before: not new
+const AO = { contrast: 'AA', tapAdvisory: 44 }
+const SIG = 'button|#buy|body'
+const pin = (id, rule, sig) => ({ id, rule, sev: 'high', anchor: { tag: 'button', sig }, audit_sig: 'AA|44' })
+const evidence = (rules, present) => ({ findings: [], rules_covered: rules, stats: { checked: {}, skipped: {} }, audit_options: AO, presentAnchors: present, presentComplete: true })
+
+test('localDelta: new / remaining / verdicts; null without a previous audit', () => {
+  assert.equal(B.localDelta(null, [{ id: 'a' }]), null)
+  const f = (id, sig) => pin(id, 'test.rule', sig)
+  const res = { ...evidence(['test.rule'], ['s-a', 's-b', 's-c']), findings: [f('b', 's-b'), f('c', 's-c'), f('d', 's-d')] }
+  const d = B.localDelta([f('a', 's-a'), f('b', 's-b'), f('c', 's-c')], res.findings, ['z'], res, 40)
+  assert.deepEqual([d.fixed, d.gone, d.new, d.remaining, d.not_rechecked, d.unresolved, d.prev_score], [['a'], [], ['d'], 2, [], [], 40])
+  assert.deepEqual(B.localDelta([f('a', 's-a')], [f('z', 's-z')], ['z'], res).new, [])   // seen before: not new
 })
 
 test('localDelta: scope change does not falsely fix unmeasured finding', () => {
-  const fCtrl = { id: 'a11y.control-name@412214a1', rule: 'a11y.control-name' }
-  const prev = [fCtrl]
-  const cur = [] // no findings in current audit
-  // Re-audit only covers a11y.img-alt
-  const delta = B.localDelta(prev, cur, [], ['a11y.img-alt'])
-  assert.equal(delta.fixed.includes(fCtrl.id), false, 'control-name must not be fixed')
+  const p = pin('a11y.control-name@412214a1', 'a11y.control-name', SIG)
+  const delta = B.localDelta([p], [], [], evidence(['a11y.img-alt'], [SIG]))
   assert.deepEqual(delta.fixed, [])
-  assert.ok(delta.not_rechecked && delta.not_rechecked.includes(fCtrl.id))
+  assert.deepEqual(delta.not_rechecked, [p.id])
 })
 
-test('localDelta: same scope repair clears finding', () => {
-  const fCtrl = { id: 'a11y.control-name@412214a1', rule: 'a11y.control-name' }
-  const prev = [fCtrl]
-  const cur = [] // defect fixed
-  // Re-audit covers a11y.control-name
-  const delta = B.localDelta(prev, cur, [], ['a11y.control-name'])
-  assert.deepEqual(delta.fixed, [fCtrl.id])
-  assert.deepEqual(delta.not_rechecked || [], [])
+test('localDelta: same scope, element present => fixed; element deleted => gone, never fixed', () => {
+  const p = pin('a11y.control-name@412214a1', 'a11y.control-name', SIG)
+  assert.deepEqual(B.localDelta([p], [], [], evidence([p.rule], [SIG])).fixed, [p.id])
+  const d = B.localDelta([p], [], [], evidence([p.rule], ['div|#other|body']))
+  assert.deepEqual([d.fixed, d.gone, d.not_rechecked], [[], [p.id], []])
 })
 
-test('localDelta: missing or malformed coverage is not evidence of repair', () => {
-  const f = { id: 'a11y.control-name@412214a1', rule: 'a11y.control-name' }
-  for (const coverage of [undefined, null, 'broken', [null], {}]) {
-    const d = B.localDelta([f], [], [], coverage)
-    assert.deepEqual(d.fixed, [])
-    assert.deepEqual(d.not_rechecked, [f.id])
+test('localDelta: the old 4th-argument rule array can no longer close a pin', () => {
+  const p = pin('a11y.control-name@412214a1', 'a11y.control-name', SIG)
+  for (const legacy of [undefined, null, 'broken', [p.rule], {}]) {
+    const d = B.localDelta([p], [], [], legacy)
+    assert.deepEqual([d.fixed, d.gone, d.not_rechecked], [[], [], [p.id]])
   }
 })
 
 const resultCases = JSON.parse(fs.readFileSync(new URL('../shared/audit_result_cases.json', import.meta.url), 'utf8'))
 for (const c of resultCases) test('raw result coverage boundary: ' + c.name, () => {
-  const f = { id: 'a11y.control-name@412214a1', rule: 'a11y.control-name' }
-  const res = { findings: [], rules_covered: [f.rule], ...c.patch }
+  const p = pin('a11y.control-name@412214a1', 'a11y.control-name', SIG)
+  const res = { ...evidence([p.rule], [SIG]), ...c.patch }
   for (const field of c.omit || []) delete res[field]
-  const current = Array.isArray(res.findings) ? res.findings.filter(x => x && typeof x.id === 'string' && x.id.trim()) : []
-  const d = B.localDelta([f], current, [], B.auditCoverage(res))
-  assert.deepEqual(d.fixed, c.fixed ? [f.id] : [])
-  if (!c.fixed) assert.deepEqual(d.not_rechecked, [f.id])
+  const d = B.localDelta([p], res.findings, [], res)
+  if (!B.usableFindings(res.findings)) { assert.equal(d, null, 'unusable report: no delta'); return }
+  assert.deepEqual(d.fixed, c.fixed ? [p.id] : [])
+  if (!c.fixed) assert.deepEqual(d.not_rechecked, [p.id])
 })
 
 test('normalizeDelta accepts the python shape and rejects junk', () => {
@@ -211,16 +209,13 @@ test('formatDesignPrompt stays <= 700 chars and includes structured metrics', ()
   assert.ok(p2.length <= 700, 'hostile len ' + p2.length)
 })
 
-test('classifyAuditState and formatFixReceipt', () => {
+test('classifyAuditState', () => {
   const all14 = ['a11y.contrast', 'a11y.control-name', 'a11y.img-alt', 'a11y.label', 'a11y.heading-order', 'a11y.html-lang', 'a11y.page-title', 'a11y.viewport-zoom', 'a11y.focus-visible', 'a11y.duplicate-id', 'a11y.aria-valid', 'layout.tap-target', 'layout.overflow-x', 'layout.crowding']
   assert.equal(B.classifyAuditState({ findings: [], rules_covered: all14 }).state, 'complete')
   assert.equal(B.classifyAuditState({ findings: [], rules_covered: ['a11y.contrast'] }).state, 'partial')
   assert.equal(B.classifyAuditState({ findings: [], rules_covered: all14, truncated: true }).state, 'partial')
   assert.equal(B.classifyAuditState({ findings: [] }).state, 'unknown')
   assert.equal(B.classifyAuditState({ findings: [], errors: [{ rule: 'engine', message: 'boom' }] }).state, 'error')
-  const r = B.formatFixReceipt(94, 72, [{ id: 'a11y.contrast@1', rule: 'a11y.contrast' }], 1, 'http://localhost:5173/')
-  assert.ok(r.includes('72 → 94 (+22)'))
-  assert.ok(r.includes('1 fixed [a11y.contrast]'))
 })
 
 test('groupBySeverity orders by severity then pin number', () => {
