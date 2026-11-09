@@ -44,14 +44,14 @@ Install is idempotent: if `window.__pinpoint?.version === own version` the facto
 audit(opts?) -> AuditResult                      // synchronous, never throws (errors -> result.errors[])
   opts: { rules?: string[], tapMin?: 24, tapAdvisory?: 44|0, contrast?: 'AA'|'AAA', maxFindings?: 200, suppress?: string[] /*finding ids*/ }
 render(findings: Finding[], opts?: {statuses?: Record<id,Status>, pinLimit?: 60}) -> { pinned:number, lost:string[] }
-setStatuses(map: Record<id,'open'|'fixed'|'dismissed'|'new'>) -> void
+setStatuses(map: Record<id,'open'|'fixed'|'gone'|'dismissed'|'new'>) -> void
 focusPin(id) -> boolean                          // scrolls target into view (block:'center'), flashes outline
 clear() -> void                                  // removes overlay root + observers' work (observers stay for dirty detection)
 drain() -> EngineEvent[]                         // empties queue
 probe() -> { protocol, version, url, key, ready, pins, dirty, vw, vh, docVersion }   // <= 300 bytes, called every 500-1000 ms
 destroy() -> void                                // removes overlay, observers, listeners, window.__pinpoint
 EngineEvent = {type:'pin-click',id,t} | {type:'fix',id,t} | {type:'dismiss',id,t} | {type:'dirty',reason:'mutation'|'load'|'resize'|'navigation',t}
-Status = 'open'|'fixed'|'dismissed'|'new'
+Status = 'open'|'fixed'|'gone'|'dismissed'|'new'   (not_rechecked is an audit outcome, persisted as 'open')
 ```
 `AuditResult`:
 ```
@@ -127,7 +127,7 @@ AUDIT_SCHEMA = {
   "additionalProperties": False}}
 PINS_SCHEMA = {
  "name": "pinpoint_pins",
- "description": "List or update Pinpoint pins stored for a page. action=list returns open/fixed/dismissed pins from the last audit (no browser needed); dismiss marks findings as intentional (needs reason; they stay hidden on re-audit); reopen undoes it; clear forgets a page. Use dismiss only when the user agrees a finding is intentional.",
+ "description": "List or update Pinpoint pins stored for a page. action=list returns open/fixed/gone/dismissed pins from the last audit (no browser needed); dismiss marks findings as intentional (needs reason; they stay hidden on re-audit); reopen undoes it; clear forgets a page. Use dismiss only when the user agrees a finding is intentional.",
  "parameters": {"type":"object","properties":{
    "action":{"type":"string","enum":["list","dismiss","reopen","clear"]},
    "url":{"type":"string","description":"Page URL; default = last audited page."},
@@ -140,7 +140,7 @@ Return shapes (always a JSON string, never raises, `**kwargs` accepted):
 audit ok:  {"ok":true,"audit_id":17,"url":"http://localhost:5173/","score":62,"counts":{"high":2,"medium":3,"low":1},
             "findings":[{"id":"a11y.contrast@1f3a9c2b","pin":1,"rule":"a11y.contrast","sev":"high","selector":"#hero .cta","label":"button.cta 'Start free trial'",
                          "note":"Contrast 1.92:1, needs 4.5:1","fix":"Darken text to #6b6b6b or darker (on #ffffff)","measured":{"ratio":1.92,"need":4.5,"fg":"#aaaaaa","bg":"#ffffff"}}],
-            "truncated":false,"delta":{"prev_score":40,"fixed":["..."],"new":[],"remaining":5}|null,"limits":["cross-origin stylesheets not scanned: 1"],
+            "truncated":false,"delta":{"prev_score":40,"fixed":["..."],"gone":[],"new":[],"remaining":5,"not_rechecked":[],"unresolved":[],"receipt":"..."}|null,"limits":["cross-origin stylesheets not scanned: 1"],
             "next":"Fix in source, then call pinpoint_audit again to verify."}
 audit err: {"ok":false,"code":"desktop_unavailable|no_preview|consent_denied|timeout|page_mismatch|page_unreachable|engine_error|bad_args",
             "message":"...","hint":"Tell the user: open the page in the Browser pane (Ctrl+Shift+L), enable Pinpoint under Capabilities > Plugins, press Audit."}
@@ -211,7 +211,7 @@ Pane states: empty ("Open a page in the Browser pane, then Audit"), running (spi
 - Isolated rig recipe: section 11 of PLAN (HERMES_HOME outside native home, `_config_version: 52`).
 
 ## 10. Disclosure (rule 13) - text for README and catalog `description`
-"Disclosure - Pinpoint's desktop half runs its own audit script inside the web page open in Hermes Desktop's Browser pane, only after you allow it for that site (Desktop's per-origin consent dialog; revocable under Capabilities > Plugins); the script reads computed styles, layout and attribute names (not form values or cookies) and draws an overlay. Findings (CSS selectors, short element labels, measured values) are stored in a local SQLite file under the plugin-data folder (`pinpoint/data.db`, 20 pages max) and are sent to the model only when the agent calls `pinpoint_audit`/`pinpoint_pins` or when you click Fix on a pin; element labels originate from the page. The desktop half polls the page every 0.5-1 s while pins are shown (via `executeJavaScript`) and re-audits automatically after page changes (switch off in the pane). `pinpoint_audit` blocks up to 90 s waiting for the Desktop (configurable) and returns `desktop_unavailable` when no Desktop window answers, including under cron. No network calls, no subprocesses, no shell, no credentials, no telemetry, no files written outside plugin-data; it never edits your source (the agent does, under normal approvals)."
+"Disclosure - Pinpoint's desktop half runs its own audit script inside the web page open in Hermes Desktop's Browser pane, only after you allow it for that site (Desktop's per-origin consent dialog; revocable under Capabilities > Plugins). The script reads computed styles, layout, the page's visible text, and the values of the attributes id, name, href, src, alt and aria-label (plus title and placeholder when it works out an element's accessible name); it contains no cookie access and does not read form-field values, and it draws an overlay. Findings (CSS selectors, short element labels that can contain page text, measured values) are stored locally in a SQLite file under the plugin-data folder (`pinpoint/data.db`; at most 20 pages, 200 pins and 50 audits per page; entries older than 7 days are pruned). They are sent to the model only when the agent calls `pinpoint_audit`/`pinpoint_pins` or when you click Fix, Fix all high or Send in the Desktop pane (or its command-palette action); an event raised by the page itself never sends a chat turn. Pinpoint also adds a short hint to the system prompt that names its two tools. The desktop half polls the page every 0.5-1 s while pins are shown (via `executeJavaScript`) and re-audits automatically after page changes (switch off in the pane). `pinpoint_audit` blocks up to 90 s waiting for the Desktop (configurable) and returns `desktop_unavailable` when no Desktop window answers, including under cron. No network calls, no subprocesses, no shell, no credentials, no telemetry, no files written outside plugin-data; it never edits your source (the agent does, under normal approvals). Limits: verified on Windows 11 with Hermes 0.22.7 only (macOS and Linux are untested). Results are a limited heuristic audit, not WCAG certification, and fixed / gone describe what this engine observed, not a guarantee about your page."
 Rule checklist (AGENTS.md): public surfaces only (`register_tool`, `register_system_prompt_section`, `plugin_events`, `plugin_storage`, desktop SDK) ✓; no monkeypatching ✓; no self-updater ✓; capabilities match registered (validate) ✓ to be re-run in CI; no secrets; never bypass approvals; no hang under cron (timeouts) ✓ to be tested; disclosure above; `requires_hermes` floor; pinned 40-char SHA at submission.
 
 ## 11. Test specification
@@ -228,3 +228,7 @@ Rule checklist (AGENTS.md): public surfaces only (`register_tool`, `register_sys
 ## 12. Demo site (D implements): "Lumen", a coffee-subscription landing page
 `demo/site/` static (`index.html`, `styles.css`, `app.js`, `assets/*.svg|jpg`) plus `serve.py` (stdlib, port 8765, SSE `/__reload`: CSS change => swap `<link>` href with cache-buster WITHOUT reload (HMR-like), HTML/JS change => `location.reload()`). Must look good (warm palette, serif headings, hero photo/gradient, pricing cards, testimonial, footer) AND contain these seeded flaws, each documented in `demo/site/flaws.json` `{rule, ref(id attr), expect:true}` (ground truth for tests and video):
 1 `#hero-sub` light grey on cream (contrast ~1.9) ; 2 `.price-note` low-contrast on gradient-free card (contrast 3.2, normal text) ; 3 `#cta-secondary` 18x18 px close/icon button (tap) + `#fav-btn` 20x20 ; 4 `#hero-img` no alt ; 5 `#team-photo` alt="IMG_2041.jpg" ; 6 `#email` input placeholder only ; 7 `#menu-btn` icon-only button, no name ; 8 `h1`->`h4` jump in pricing ; 9 `#fine-print` 10.5 px ; 10 `.banner-wide` 1200 px element -> horizontal overflow at 800 px viewport ; 11 `.tag-row a` links 6 px apart, 20 px tall ; 12 `.nav a` `outline:none` with no replacement ; 13 `<html>` lacks `lang` ; 14 `.tight p` line-height 1.0. Plus `ok-*` controls (correct hero image, labelled input, 44 px button) so false positives are visible. `demo/site/fixed/` holds the corrected `index.html/styles.css` (used by the scripted fix and for "after" screenshots). `demo/fixes/*.patch` = unified diffs the fake LLM applies via the real `patch` tool.
+
+## 12. Delta semantics (authoritative: docs/delta-semantics.md)
+
+`delta` classifies every earlier open pin that the new audit no longer reports. **fixed**: the later audit is comparable (the rule ran, no engine error, truncation or limit, same audit options) AND an element with the same signature is still on the page exactly once. It means "no longer reported, and the element is still there"; it does not mean the element was measured again. **gone**: the pin's element signature is absent from a complete element inventory; removal, renaming or moving are indistinguishable, so it is never counted as a fix. **not rechecked**: anything the engine cannot verify; the pin stays open.

@@ -1,6 +1,6 @@
 name: pinpoint
 version: "0.1.0"
-description: "Measure the live page in the Hermes Desktop Browser pane, pin findings on the real elements, send a pin to the agent, and verify the fix on reload."
+description: "Measure the live page in the Hermes Desktop Browser pane, pin findings on the real elements, send a pin to the agent, and re-audit to see which findings are fixed, gone or not rechecked (limited-engine evidence, not WCAG certification). Verified on Windows 11 only."
 author: stupidburgers
 license: MIT
 homepage: https://github.com/stupidburgers/pinpoint
