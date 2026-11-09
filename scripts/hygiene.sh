@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install-scanner hygiene (PLAN E5). Scans TRACKED files only.
 # Exit 1 on any hit. Run from the repo root.
-set -u
+set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
 fail=0
 bad() { echo "HYGIENE FAIL: $*"; fail=1; }
@@ -37,5 +37,8 @@ if [ -n "$chpy" ]; then
   echo "$chpy" | xargs grep -nE 'chr[[:space:]]*\([[:space:]]*[0-9]+[[:space:]]*\)[[:space:]]*\+[[:space:]]*chr[[:space:]]*\(' \
     && bad "chr()+chr() chain in shipped python (install scanner chr_building)"
 fi
+
+# 5. all tracked text, including docs/demo/evidence; no private instruction file.
+git ls-files -z | env -u PYTHONPATH "${PYTHON:-python}" scripts/privacy-check.py --tracked-stdin || bad "tracked-text privacy scan"
 
 [ "$fail" = 0 ] && echo "hygiene ok" || exit 1

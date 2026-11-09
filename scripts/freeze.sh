@@ -5,7 +5,9 @@
 # The pinned SHA is the commit BEFORE the yaml rewrite; the yaml edit is committed
 # afterwards (a commit cannot contain its own hash).
 set -euo pipefail
-export PATH="/c/Program Files/Git/cmd:$PATH"
+for tool in git python node hermes; do
+  command -v "$tool" >/dev/null 2>&1 || { printf "Missing required tool on PATH: %s\n" "$tool" >&2; exit 1; }
+done
 cd "$(git rev-parse --show-toplevel)"
 PY="env -u PYTHONPATH python"
 # Keep harness files and any dependency environment out of the scanned tree.
@@ -33,7 +35,7 @@ bash scripts/hygiene.sh
 
 step "4. pytest"
 $PY -m pytest tests/py tests/engine -q --basetemp="$VH/pytest"
-node --test tests/build/bridge.test.mjs
+node --test tests/build/*.mjs
 
 step "5. desktop build check"
 node scripts/build-desktop.mjs --check

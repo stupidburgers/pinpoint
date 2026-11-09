@@ -1,7 +1,7 @@
 """Isolated Hermes Desktop rig for Pinpoint E2E (productised from tools/q5-rig, ADR 003).
 
 usage: python demo/rig/rig.py start|stop|status|reset-site|open-site [URL]|consent|shot PNG|eval JS   [--delete] [--no-app]
-env:   RIG   rig dir          (default C:/Users/Lucas/AppData/Local/pinpoint-rig; must be OUTSIDE %LOCALAPPDATA%/hermes)
+env:   RIG   rig dir          (required explicit isolated directory; must be OUTSIDE the live Hermes home)
        PORT  CDP port         (default 9444)
        PINPOINT_PYTHON_HALF=0 omits dashboard/ from the plugin copy so /api/plugins/pinpoint/* is 404 (desktop-only mode, SPEC scenario 6;
        measured: plugins.enabled/disabled do NOT gate dashboard routes, so the python half stays reachable)
@@ -22,7 +22,7 @@ import time
 import urllib.request
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')).replace('\\', '/')
-RIG = os.environ.get('RIG', 'C:/Users/Lucas/AppData/Local/pinpoint-rig').replace('\\', '/')
+RIG = os.environ.get('RIG', '').replace('\\', '/')
 PORT = int(os.environ.get('PORT', '9444'))
 SITE_PORT = int(os.environ.get('SITE_PORT', '8765'))
 LLM_PORT = int(os.environ.get('LLM_PORT', '8799'))
@@ -35,10 +35,10 @@ CREATE = 0x00000008 | 0x00000200  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
 def exe():
     if os.environ.get('HERMES_EXE'):
         return os.environ['HERMES_EXE']
-    # WindowsApps cannot be listed (ACL), so glob fails; ask the package manager, then fall back to the measured build.
+    # WindowsApps may deny listing: ask the package manager for the installed build.
     r = subprocess.run(['powershell', '-NoProfile', '-Command', '(Get-AppxPackage NousResearchInc.HermesAgent).InstallLocation'],
                        capture_output=True, text=True).stdout.strip()
-    for base in ([r.replace('\\', '/')] if r else []) + ['C:/Program Files/WindowsApps/NousResearchInc.HermesAgent_2026.7363.3271.0_x64__sznbd6dv1j3v4']:
+    for base in ([r.replace('\\', '/')] if r else []):
         p = base + '/app/Hermes Agent.exe'
         if os.path.exists(p):
             return p
@@ -46,6 +46,8 @@ def exe():
 
 
 def guard():
+    if not RIG or not os.path.isabs(RIG):
+        sys.exit('set RIG to an explicit absolute isolated test directory')
     if re.search(r'/appdata/local/hermes(/|$)', RIG.lower()):
         sys.exit('rig must be OUTSIDE %LOCALAPPDATA%/hermes (the gateway would attach to the host gateway)')
 
@@ -266,6 +268,7 @@ def stop(delete=False):
 
 
 if __name__ == '__main__':
+    guard()
     a = sys.argv[1:]
     cmd = a[0] if a else 'status'
     if cmd == 'start':
