@@ -31,7 +31,7 @@ jobs:
         shell: bash
         run: python -m pytest tests/py tests/engine -q --basetemp="$RUNNER_TEMP/pinpoint-pytest"
       - name: Node bridge tests
-        run: node --test tests/build/bridge.test.mjs
+        run: node --test tests/build/*.mjs
       - name: Desktop build is up to date
         run: node scripts/build-desktop.mjs --check
       - name: Hygiene scan
