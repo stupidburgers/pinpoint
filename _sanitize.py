@@ -23,6 +23,15 @@ _PROMPT_DELIMS = re.compile(
     r"<!--[\s\S]*?-->",
     re.IGNORECASE,
 )
+# The cap*4 slice can cut off a closing `>`, `]`, or `-->`. Drop that unclosed tail
+# so the opener (and a comment body) cannot survive into the capped string.
+# Applied only when the input was actually sliced; a short unclosed fragment is kept.
+_UNCLOSED_DELIM = re.compile(
+    r"<\s*(?:/\s*)?(?:system|assistant|user|hermes|control|prompt)[^>]*\Z|"
+    r"\[\s*(?:/\s*)?(?:USER_MESSAGE|SYSTEM|ASSISTANT|OUT-OF-BAND)[^\]]*\Z|"
+    r"<!--(?:(?!-->)[\s\S])*\Z",
+    re.IGNORECASE,
+)
 
 
 def clean_text(s, cap):
@@ -36,8 +45,13 @@ def clean_text(s, cap):
     cap = max(0, int(cap))
     # Bound the work before any regex runs: page text is attacker-sized. 4x leaves room for
     # delimiters and whitespace that are stripped/collapsed below before the final cap.
-    s = s[: cap * 4]
+    limit = cap * 4
+    truncated = len(s) > limit
+    if truncated:
+        s = s[:limit]
     s = _PROMPT_DELIMS.sub(" ", s)
+    if truncated:
+        s = _UNCLOSED_DELIM.sub(" ", s)
     s = _WS.sub(" ", _CTRL.sub("", s.replace("\t", " ").replace("\n", " ").replace("\r", " "))).strip()
     return s[:cap]
 

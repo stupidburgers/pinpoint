@@ -257,6 +257,35 @@ test('cleanText: no ReDoS on a delimiter opener followed by long whitespace (rev
       assert.ok(best < 50, opener + ' cap=' + cap + ' took ' + best.toFixed(1) + 'ms')
     }
   }
-  assert.equal(B.cleanText('ok <  /  system >x' + ' '.repeat(50000), 200), 'ok x\u2026')
+  assert.equal(B.cleanText('ok <  /  system >x' + ' '.repeat(50000), 200), 'ok x')
   assert.equal(B.cleanText('abc', 200), 'abc')
+  assert.equal(B.cleanText('Button' + ' '.repeat(5000), 60), 'Button')
+})
+
+test('cleanText: a cap slice must not keep a delimiter whose closer was cut off', () => {
+  const comment = 'ok <!-- ' + 'hid '.repeat(80) + '--> later'
+  assert.equal(B.cleanText(comment, 30), 'ok')
+  assert.equal(B.cleanText('before <!-- ' + 'secret '.repeat(40) + '--> after', 20).includes('<!--'), false)
+  assert.equal(B.cleanText('before <!-- ' + 'secret '.repeat(40) + '--> after', 20).includes('secret'), false)
+  const tag = 'see <system ' + 'x'.repeat(500) + '>keep</system> tail'
+  const tagged = B.cleanText(tag, 40)
+  assert.equal(/<\s*system/i.test(tagged), false)
+  assert.equal(tagged.includes('system>'), false)
+  const bracket = B.cleanText('see [ / SYSTEM ' + 'x'.repeat(500) + ']keep', 40)
+  assert.equal(bracket.includes('['), false)
+  assert.equal(/SYSTEM/i.test(bracket), false)
+  // Closed delimiters inside the window still strip, and a short unclosed fragment is kept.
+  assert.equal(B.cleanText('ok <!-- hid --> later' + ' '.repeat(5000), 40), 'ok later')
+  assert.equal(B.cleanText('cost < system', 80), 'cost < system')
+})
+
+test('formatDesignPrompt does not turn long whitespace into an ellipsis', () => {
+  const p = B.formatDesignPrompt(
+    { label: 'Button' + ' '.repeat(5000), selector: '#a', rect: { w: 10, h: 10 } },
+    'http://x/',
+    ' '.repeat(2000)
+  )
+  assert.ok(p.includes('Element: Button (`#a`)'), p)
+  assert.ok(p.includes('Instruction: Refine spacing, visual hierarchy, and accessibility polish.'), p)
+  assert.equal(p.includes('\u2026'), false)
 })
