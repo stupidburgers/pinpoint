@@ -8,7 +8,8 @@ export const REQUEST_CODES = ['no_preview', 'consent_denied', 'origin_blocked', 
 const BAD_CHARS = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g
 
 // Prompt-breakout delimiters in page-originated strings (mirrors _sanitize.py _PROMPT_DELIMS).
-const PROMPT_DELIMS = /<\s*\/?\s*(?:system|assistant|user|hermes|control|prompt)[^>]*>|\[\s*\/?\s*(?:USER_MESSAGE|SYSTEM|ASSISTANT|OUT-OF-BAND)[^\]]*\]|<!--[\s\S]*?-->/gi
+// `<\s*(?:\/\s*)?` rather than `<\s*\/?\s*`: adjacent `\s*` backtrack quadratically on `<` + long whitespace.
+const PROMPT_DELIMS = /<\s*(?:\/\s*)?(?:system|assistant|user|hermes|control|prompt)[^>]*>|\[\s*(?:\/\s*)?(?:USER_MESSAGE|SYSTEM|ASSISTANT|OUT-OF-BAND)[^\]]*\]|<!--[\s\S]*?-->/gi
 
 function stripDelims(text) {
   // Re-apply until stable so nested or doubled delimiter forms cannot reassemble a delimiter.
@@ -22,8 +23,12 @@ function stripDelims(text) {
 }
 
 export function cleanText(value, cap) {
-  const s = stripDelims(String(value == null ? '' : value)).replace(BAD_CHARS, '').replace(/\s+/g, ' ').trim()
-  if (!cap || s.length <= cap) return s
+  let raw = String(value == null ? '' : value)
+  // Bound regex work on page-sized input before stripping (4x leaves room for stripped/collapsed text).
+  const cut = cap > 0 && raw.length > cap * 4
+  if (cut) raw = raw.slice(0, cap * 4)
+  const s = stripDelims(raw).replace(BAD_CHARS, '').replace(/\s+/g, ' ').trim()
+  if (!cap || (s.length <= cap && !cut)) return s
   return s.slice(0, Math.max(0, cap - 1)).trimEnd() + '\u2026'
 }
 

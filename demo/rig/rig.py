@@ -1,4 +1,4 @@
-"""Isolated Hermes Desktop rig for Pinpoint E2E (productised from tools/q5-rig, ADR 003).
+"""Isolated Hermes Desktop rig for Pinpoint E2E (productised from the Q5 spike rig, ADR 003; the spike itself is no longer shipped).
 
 usage: python demo/rig/rig.py start|stop|status|reset-site|open-site [URL]|consent|shot PNG|eval JS   [--delete] [--no-app]
 env:   RIG   rig dir          (required explicit isolated directory; must be OUTSIDE the live Hermes home)

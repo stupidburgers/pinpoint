@@ -14,21 +14,16 @@ def dumps(obj):
     return json.dumps(obj, separators=(",", ":"), ensure_ascii=False, default=str)
 
 
+# Neutralize potential LLM prompt-breakout delimiters in page-originated strings.
+# Prefixes are written `<\s*(?:/\s*)?` (not `<\s*/?\s*`): two adjacent `\s*` around an
+# optional `/` backtrack quadratically on `<` + a long whitespace run (page-controlled input).
 _PROMPT_DELIMS = re.compile(
-    r"<\s*/?\s*(?:system|assistant|user|hermes|control|prompt)[^>]*>|"
-    r"\[\s*/?\s*(?:USER_MESSAGE|SYSTEM|ASSISTANT|OUT-OF-BAND)[^\]]*\]|"
+    r"<\s*(?:/\s*)?(?:system|assistant|user|hermes|control|prompt)[^>]*>|"
+    r"\[\s*(?:/\s*)?(?:USER_MESSAGE|SYSTEM|ASSISTANT|OUT-OF-BAND)[^\]]*\]|"
     r"<!--[\s\S]*?-->",
     re.IGNORECASE,
 )
 
-
-# Neutralize potential LLM prompt-breakout delimiters in page-originated strings
-_PROMPT_DELIMS = re.compile(
-    r'<\s*/?\s*(?:system|assistant|user|hermes|control|prompt)[^>]*>|'
-    r'\[\s*/?\s*(?:USER_MESSAGE|SYSTEM|ASSISTANT|OUT-OF-BAND)[^\]]*\]|'
-    r'<!--[\s\S]*?-->',
-    re.IGNORECASE,
-)
 
 def clean_text(s, cap):
     """Strip control/bidi chars, delimiters, collapse whitespace, hard-cap to `cap` chars."""
@@ -38,9 +33,13 @@ def clean_text(s, cap):
         s = str(s)
     if not isinstance(s, str):
         return ""
+    cap = max(0, int(cap))
+    # Bound the work before any regex runs: page text is attacker-sized. 4x leaves room for
+    # delimiters and whitespace that are stripped/collapsed below before the final cap.
+    s = s[: cap * 4]
     s = _PROMPT_DELIMS.sub(" ", s)
     s = _WS.sub(" ", _CTRL.sub("", s.replace("\t", " ").replace("\n", " ").replace("\r", " "))).strip()
-    return s[: max(0, int(cap))]
+    return s[:cap]
 
 
 def clean_selector(s):

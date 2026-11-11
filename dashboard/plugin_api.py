@@ -4,6 +4,7 @@ Hermes loads this file standalone by path (no parent package), so the plugin pac
 under a private name from the parent directory. All shared state lives in files / SQLite.
 """
 import importlib.util
+import json
 import os
 import sys
 from pathlib import Path
@@ -11,7 +12,7 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 _PLUGIN_DIR = Path(__file__).resolve().parent.parent
 _PKG = "_pinpoint_dashboard_pkg"
@@ -114,8 +115,21 @@ async def result(request: Request):
 
 
 @router.post("/audit")
-async def audit(body: AuditBody):
-    _, store = _mods()
+async def audit(request: Request):
+    core, store = _mods()
+    raw = b""
+    async for chunk in request.stream():  # bounded BEFORE parsing, same limit as /result
+        raw += chunk
+        if len(raw) > core.MAX_RESULT_BYTES + 4096:
+            return JSONResponse({"ok": False, "message": "audit too large"}, status_code=413)
+    try:
+        data = json.loads(raw)
+    except Exception:
+        return JSONResponse({"ok": False, "message": "malformed audit"}, status_code=400)
+    try:
+        body = AuditBody.model_validate(data) if hasattr(AuditBody, "model_validate") else AuditBody.parse_obj(data)
+    except ValidationError:
+        return JSONResponse({"ok": False, "message": "invalid audit body"}, status_code=422)
     out = store.record_audit(body.result, body.source if body.source in ("user", "auto") else "user")
     if out.get("audit_id") is None:
         return JSONResponse({"ok": False, "message": "result has no usable url"}, status_code=400)

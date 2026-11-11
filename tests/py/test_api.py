@@ -219,3 +219,14 @@ def test_malformed_result_is_400(client, core):
     _req(core, "h4")
     r = client.post(P + "/result", content=b"{not json", headers={"content-type": "application/json"})
     assert r.status_code == 400
+
+
+def test_oversize_audit_rejected_before_store(client):
+    big = {"result": {**AR([1]), "blob": "x" * (300 * 1024)}, "source": "user"}
+    assert client.post(P + "/audit", json=big).status_code == 413
+    assert client.get(P + "/store", params={"url_key": URL}).json() == {"pins": [], "last": None}
+
+
+def test_malformed_audit_is_400(client):
+    r = client.post(P + "/audit", content=b"{not json", headers={"content-type": "application/json"})
+    assert r.status_code == 400
