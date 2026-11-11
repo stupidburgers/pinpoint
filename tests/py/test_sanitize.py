@@ -153,6 +153,20 @@ def test_clean_text_truncates_before_regex_without_breaking_delimiter_stripping(
     assert sanitize.clean_text("a" * 50000, 10) == "a" * 10
 
 
+def test_clean_text_slice_does_not_keep_a_cut_off_delimiter(sanitize):
+    # The cap*4 window can end inside a comment or an unclosed role tag. The opener
+    # and the comment body must not survive; a short unclosed fragment still does.
+    assert sanitize.clean_text("ok <!-- " + ("hid " * 80) + "--> later", 30) == "ok"
+    leaked = sanitize.clean_text("before <!-- " + ("secret " * 40) + "--> after", 20)
+    assert "<!--" not in leaked and "secret" not in leaked
+    tagged = sanitize.clean_text("see <system " + ("x" * 500) + ">keep</system> tail", 40)
+    assert "<system" not in tagged.lower() and "system>" not in tagged.lower()
+    bracket = sanitize.clean_text("see [ / SYSTEM " + ("x" * 500) + "]keep", 40)
+    assert "[" not in bracket and "SYSTEM" not in bracket
+    assert sanitize.clean_text("ok <!-- hid --> later" + (" " * 5000), 40) == "ok later"
+    assert sanitize.clean_text("cost < system", 80) == "cost < system"
+
+
 def test_prompt_delims_defined_once():
     from pathlib import Path
     src = (Path(__file__).resolve().parents[2] / "_sanitize.py").read_text("utf-8")

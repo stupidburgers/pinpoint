@@ -10,6 +10,8 @@ const BAD_CHARS = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e\u2066-\
 // Prompt-breakout delimiters in page-originated strings (mirrors _sanitize.py _PROMPT_DELIMS).
 // `<\s*(?:\/\s*)?` rather than `<\s*\/?\s*`: adjacent `\s*` backtrack quadratically on `<` + long whitespace.
 const PROMPT_DELIMS = /<\s*(?:\/\s*)?(?:system|assistant|user|hermes|control|prompt)[^>]*>|\[\s*(?:\/\s*)?(?:USER_MESSAGE|SYSTEM|ASSISTANT|OUT-OF-BAND)[^\]]*\]|<!--[\s\S]*?-->/gi
+// Cap*4 can slice off a closer. This matches only an unclosed tail (end-anchored).
+const UNCLOSED_DELIM = /<\s*(?:\/\s*)?(?:system|assistant|user|hermes|control|prompt)[^>]*(?![\s\S])|\[\s*(?:\/\s*)?(?:USER_MESSAGE|SYSTEM|ASSISTANT|OUT-OF-BAND)[^\]]*(?![\s\S])|<!--(?:(?!-->)[\s\S])*(?![\s\S])/i
 
 function stripDelims(text) {
   // Re-apply until stable so nested or doubled delimiter forms cannot reassemble a delimiter.
@@ -27,8 +29,12 @@ export function cleanText(value, cap) {
   // Bound regex work on page-sized input before stripping (4x leaves room for stripped/collapsed text).
   const cut = cap > 0 && raw.length > cap * 4
   if (cut) raw = raw.slice(0, cap * 4)
-  const s = stripDelims(raw).replace(BAD_CHARS, '').replace(/\s+/g, ' ').trim()
-  if (!cap || (s.length <= cap && !cut)) return s
+  let s = stripDelims(raw)
+  if (cut) s = s.replace(UNCLOSED_DELIM, ' ')
+  s = s.replace(BAD_CHARS, '').replace(/\s+/g, ' ').trim()
+  // Ellipsis follows the cleaned length. The internal slice is not itself a truncation mark:
+  // a long whitespace run would otherwise become "…" and replace Design mode's default instruction.
+  if (!cap || s.length <= cap) return s
   return s.slice(0, Math.max(0, cap - 1)).trimEnd() + '\u2026'
 }
 
